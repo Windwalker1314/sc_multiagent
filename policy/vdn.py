@@ -2,6 +2,7 @@ import torch
 import os
 from network.base_net import RNN
 from network.vdn_net import VDNNet
+from network.transformer import Transformer
 
 
 class VDN:
@@ -18,8 +19,14 @@ class VDN:
             input_shape += self.n_agents
 
         # 神经网络
-        self.eval_rnn = RNN(input_shape, args)  # 每个agent选动作的网络
-        self.target_rnn = RNN(input_shape, args)
+        if args.alg == 'vdn':
+            self.eval_rnn = RNN(input_shape, args)  # 每个agent选动作的网络
+            self.target_rnn = RNN(input_shape, args)
+        elif args.alg == 'vdn_lot':
+            self.eval_rnn = Transformer(input_shape, args)  # 每个agent选动作的网络
+            self.target_rnn = Transformer(input_shape, args)
+        else:
+            raise Exception("No such algorithm")
         self.eval_vdn_net = VDNNet()  # 把agentsQ值加起来的网络
         self.target_vdn_net = VDNNet()
         self.args = args

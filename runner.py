@@ -4,7 +4,7 @@ from common.rollout import RolloutWorker, CommRolloutWorker
 from agent.agent import Agents, CommAgents
 from common.replay_buffer import ReplayBuffer
 import matplotlib.pyplot as plt
-
+import time
 
 class Runner:
     def __init__(self, env, args):
@@ -29,11 +29,17 @@ class Runner:
 
     def run(self, num):
         time_steps, train_steps, evaluate_steps = 0, 0, -1
+        cur_time = time.time()
+        m = 1
         while time_steps < self.args.n_steps:
             print('Run {}, time_steps {}'.format(num, time_steps))
+            if(time_steps>m*1000):
+                m+=1
+                print("Time:",time.time()-cur_time)
+                cur_time = time.time()
             if time_steps // self.args.evaluate_cycle > evaluate_steps:
                 win_rate, episode_reward = self.evaluate()
-                # print('win_rate is ', win_rate)
+                print('win_rate is ', win_rate, "reward:",episode_reward)
                 self.win_rates.append(win_rate)
                 self.episode_rewards.append(episode_reward)
                 self.plt(num)

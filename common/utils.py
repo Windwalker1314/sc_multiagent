@@ -1,3 +1,4 @@
+from cProfile import label
 import inspect
 import functools
 import torch
@@ -34,9 +35,10 @@ def td_lambda_target(batch, max_episode_len, q_targets, args):
     # batch.shep = (episode_num, max_episode_len， n_agents，n_actions)
     # q_targets.shape = (episode_num, max_episode_len， n_agents)
     episode_num = batch['o'].shape[0]
-    mask = (1 - batch["padded"].float()).repeat(1, 1, args.n_agents)
+    mask = (1 - batch["padded"].float()).repeat(1, 1, args.n_agents) 
     terminated = (1 - batch["terminated"].float()).repeat(1, 1, args.n_agents)
     r = batch['r'].repeat((1, 1, args.n_agents))
+    # mask,terminated, r (n_episodes, timesteps, n_agents)
     # --------------------------------------------------n_step_return---------------------------------------------------
     '''
     1. 每条经验都有若干个n_step_return，所以给一个最大的max_episode_len维度用来装n_step_return
@@ -47,6 +49,7 @@ def td_lambda_target(batch, max_episode_len, q_targets, args):
     3. terminated用来将超出当前episode长度的q_targets和r置为0
     '''
     n_step_return = torch.zeros((episode_num, max_episode_len, args.n_agents, max_episode_len))
+    # i th step:  (e, i, n_agents, [r_i, r_i+1, r_i+2, r_last])
     for transition_idx in range(max_episode_len - 1, -1, -1):
         # 最后计算1 step return
         n_step_return[:, transition_idx, :, 0] = (r[:, transition_idx] + args.gamma * q_targets[:, transition_idx] * terminated[:, transition_idx]) * mask[:, transition_idx]        # 经验transition_idx上的obs有max_episode_len - transition_idx个return, 分别计算每种step return

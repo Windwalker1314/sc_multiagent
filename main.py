@@ -29,6 +29,15 @@ if __name__ == '__main__':
         args.state_shape = env_info["state_shape"]
         args.obs_shape = env_info["obs_shape"]
         args.episode_limit = env_info["episode_limit"]
+        env_info["move_feats_dim"] = env.get_obs_move_feats_size()
+        env_info["enemy_feats_dim"] = env.get_obs_enemy_feats_size()
+        env_info["ally_feats_dim"] = env.get_obs_ally_feats_size()
+        env_info["env_own_feats_dim"] = env.get_obs_own_feats_size()
+        args.move_feats_dim = env_info["move_feats_dim"]
+        args.enemy_feats_dim = env_info["enemy_feats_dim"]
+        args.ally_feats_dim = env_info["ally_feats_dim"]
+        args.env_own_feats_dim = env_info["env_own_feats_dim"]
+        print(env_info)
         runner = Runner(env, args)
         if not args.evaluate:
             runner.run(i)

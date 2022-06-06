@@ -86,7 +86,7 @@ class COMA:
         return input_shape
 
     def learn(self, batch, max_episode_len, train_step, epsilon):  # train_step表示是第几次学习，用来控制更新target_net网络的参数
-        episode_num = batch['o'].shape[0]
+        episode_num = batch['o'].shape[0]  
         self.init_hidden(episode_num)
         for key in batch.keys():  # 把batch里的数据转化成tensor
             if key == 'u':
@@ -94,7 +94,13 @@ class COMA:
             else:
                 batch[key] = torch.tensor(batch[key], dtype=torch.float32)
         u, r, avail_u, terminated = batch['u'], batch['r'],  batch['avail_u'], batch['terminated']
-        mask = (1 - batch["padded"].float()).repeat(1, 1, self.n_agents)  # 用来把那些填充的经验的TD-error置0，从而不让它们影响到学习
+        # o (episode, timesteps, agents, obs_dim)
+        # u (episode, timesteps, agents, 1)
+        # r (episode, timesteps, 1)
+        # avail_u (episode, timesteps, agents, action_dims)
+        # terminated (episode, timesteps, 1)
+
+        mask = (1 - batch["padded"].float()).repeat(1, 1, self.n_agents)  # 用来把那些填充的经验的TD-error置0，从而不让它们影响到学习 (episodes, timesteps, n_agents)
         if self.args.cuda:
             u = u.cuda()
             mask = mask.cuda()
@@ -104,7 +110,9 @@ class COMA:
 
         q_taken = torch.gather(q_values, dim=3, index=u).squeeze(3)  # 每个agent的选择的动作对应的Ｑ值
         pi_taken = torch.gather(action_prob, dim=3, index=u).squeeze(3)  # 每个agent的选择的动作对应的概率
+
         pi_taken[mask == 0] = 1.0  # 因为要取对数，对于那些填充的经验，所有概率都为0，取了log就是负无穷了，所以让它们变成1
+        #pi_taken = pi_taken*mask + torch.ones_like(mask) - mask
         log_pi_taken = torch.log(pi_taken)
 
 
@@ -116,31 +124,26 @@ class COMA:
         loss.backward()
         torch.nn.utils.clip_grad_norm_(self.rnn_parameters, self.args.grad_norm_clip)
         self.rnn_optimizer.step()
-        # print('Training: loss is', loss.item())
-        # print('Training: critic params')
-        # for params in self.eval_critic.named_parameters():
-        #     print(params)
-        # print('Training: actor params')
-        # for params in self.eval_rnn.named_parameters():
-        #     print(params)
 
     def _get_critic_inputs(self, batch, transition_idx, max_episode_len):
         # 取出所有episode上该transition_idx的经验
         obs, obs_next, s, s_next = batch['o'][:, transition_idx], batch['o_next'][:, transition_idx],\
                                    batch['s'][:, transition_idx], batch['s_next'][:, transition_idx]
+        
+        # u_onehot (episodes, n_agents, action_dims)
         u_onehot = batch['u_onehot'][:, transition_idx]
         if transition_idx != max_episode_len - 1:
             u_onehot_next = batch['u_onehot'][:, transition_idx + 1]
         else:
             u_onehot_next = torch.zeros(*u_onehot.shape)
         # s和s_next是二维的，没有n_agents维度，因为所有agent的s一样。其他都是三维的，到时候不能拼接，所以要把s转化成三维的
-        s = s.unsqueeze(1).expand(-1, self.n_agents, -1)
+        s = s.unsqueeze(1).expand(-1, self.n_agents, -1) 
         s_next = s_next.unsqueeze(1).expand(-1, self.n_agents, -1)
         episode_num = obs.shape[0]
         # 因为coma的critic用到的是所有agent的动作，所以要把u_onehot最后一个维度上当前agent的动作变成所有agent的动作
         u_onehot = u_onehot.view((episode_num, 1, -1)).repeat(1, self.n_agents, 1)
+        
         u_onehot_next = u_onehot_next.view((episode_num, 1, -1)).repeat(1, self.n_agents, 1)
-
         if transition_idx == 0:  # 如果是第一条经验，就让前一个动作为0向量
             u_onehot_last = torch.zeros_like(u_onehot)
         else:
@@ -148,6 +151,14 @@ class COMA:
             u_onehot_last = u_onehot_last.view((episode_num, 1, -1)).repeat(1, self.n_agents, 1)
 
         inputs, inputs_next = [], []
+        # s (episodes, n_agents, s_dims)
+        # obs (episodes, n_agents, obs_dims）
+        # u_onehot (episodes, n_agents, n_agents*n_actions)
+        # u_onehot_last (episodes, n_agents, n_agents*n_actions)
+        # agent (episodes, n_agents, n_agents)
+
+        # episodes * n_agents, s_dims + obs_dims + n_agents*n_actions*2 + n_agents
+        # 98 + 55 + 5*12*2 + 5 = 278
         # 添加状态
         inputs.append(s)
         inputs_next.append(s_next)
@@ -157,7 +168,6 @@ class COMA:
         # 添加所有agent的上一个动作
         inputs.append(u_onehot_last)
         inputs_next.append(u_onehot)
-
         # 添加当前动作
         '''
         因为coma对于当前动作，输入的是其他agent的当前动作，不输入当前agent的动作，为了方便起见，每次虽然输入当前agent的
@@ -165,6 +175,7 @@ class COMA:
         '''
         action_mask = (1 - torch.eye(self.n_agents))  # th.eye（）生成一个二维对角矩阵
         # 得到一个矩阵action_mask，用来将(episode_num, n_agents, n_agents * n_actions)的actions中每个agent自己的动作变成0向量
+        # (n_agents,n_agents*n_actions)
         action_mask = action_mask.view(-1, 1).repeat(1, self.n_actions).view(self.n_agents, -1)
         inputs.append(u_onehot * action_mask.unsqueeze(0))
         inputs_next.append(u_onehot_next * action_mask.unsqueeze(0))
@@ -175,11 +186,13 @@ class COMA:
         即可，比如给agent_0后面加(1, 0, 0, 0, 0)，表示5个agent中的0号。而agent_0的数据正好在第0行，那么需要加的
         agent编号恰好就是一个单位矩阵，即对角线为1，其余为0
         '''
+        # episodes, n_agents, n_agents
         inputs.append(torch.eye(self.n_agents).unsqueeze(0).expand(episode_num, -1, -1))
         inputs_next.append(torch.eye(self.n_agents).unsqueeze(0).expand(episode_num, -1, -1))
 
         # 要把inputs中的5项输入拼起来，并且要把其维度从(episode_num, n_agents, inputs)三维转换成(episode_num * n_agents, inputs)二维
         inputs = torch.cat([x.reshape(episode_num * self.n_agents, -1) for x in inputs], dim=1)
+        # episodes*n_agents, 
         inputs_next = torch.cat([x.reshape(episode_num * self.n_agents, -1) for x in inputs_next], dim=1)
         return inputs, inputs_next
 
@@ -238,8 +251,7 @@ class COMA:
             if self.args.cuda:
                 inputs = inputs.cuda()
                 self.eval_hidden = self.eval_hidden.cuda()
-            outputs, self.eval_hidden = self.eval_rnn(inputs, self.eval_hidden)  # inputs维度为(40,96)，得到的q_eval维度为(40,n_actions)
-            # 把q_eval维度重新变回(8, 5,n_actions)
+            outputs, self.eval_hidden = self.eval_rnn(inputs, self.eval_hidden)  
             outputs = outputs.view(episode_num, self.n_agents, -1)
             prob = torch.nn.functional.softmax(outputs, dim=-1)
             action_prob.append(prob)
@@ -267,9 +279,10 @@ class COMA:
     def _train_critic(self, batch, max_episode_len, train_step):
         u, r, avail_u, terminated = batch['u'], batch['r'], batch['avail_u'], batch['terminated']
         u_next = u[:, 1:]
-        padded_u_next = torch.zeros(*u[:, -1].shape, dtype=torch.long).unsqueeze(1)
-        u_next = torch.cat((u_next, padded_u_next), dim=1)
+        padded_u_next = torch.zeros(*u[:, -1].shape, dtype=torch.long).unsqueeze(1)  # (episodes, 1, n_agents, 1)
+        u_next = torch.cat((u_next, padded_u_next), dim=1)     # (episodes, timesteps, n_agents, 1)
         mask = (1 - batch["padded"].float()).repeat(1, 1, self.n_agents)  # 用来把那些填充的经验的TD-error置0，从而不让它们影响到学习
+        # mask (n_episodes, timesteps, n_agents)
         if self.args.cuda:
             u = u.cuda()
             u_next = u_next.cuda()
@@ -279,8 +292,7 @@ class COMA:
         q_evals, q_next_target = self._get_q_values(batch, max_episode_len)
         q_values = q_evals.clone()  # 在函数的最后返回，用来计算advantage从而更新actor
         # 取每个agent动作对应的Q值，并且把最后不需要的一维去掉，因为最后一维只有一个值了
-
-        q_evals = torch.gather(q_evals, dim=3, index=u).squeeze(3)
+        q_evals = torch.gather(q_evals, dim=3, index=u).squeeze(3)   # episodes, timesteps, n_agents(q of selected actions)
         q_next_target = torch.gather(q_next_target, dim=3, index=u_next).squeeze(3)
         targets = td_lambda_target(batch, max_episode_len, q_next_target.cpu(), self.args)
         if self.args.cuda:

@@ -13,6 +13,9 @@ class Agents:
         if args.alg == 'vdn':
             from policy.vdn import VDN
             self.policy = VDN(args)
+        elif args.alg =='vdn_lot':
+            from policy.vdn import VDN
+            self.policy = VDN(args)
         elif args.alg == 'iql':
             from policy.iql import IQL
             self.policy = IQL(args)
