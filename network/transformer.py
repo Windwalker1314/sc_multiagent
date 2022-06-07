@@ -19,7 +19,6 @@ class Transformer(nn.Module):
         self.m_f_size = input_shape - self.enemy_f_size - self.ally_f_size
 
         self.n_agents = self.n_ally+self.n_enemy+1
-        self.position = torch.arange(0, self.n_agents)  # n_agents
 
         self.emb_dim = 32
         self.emb_m = nn.Linear(self.m_f_size, self.emb_dim)
@@ -48,7 +47,7 @@ class Transformer(nn.Module):
         
         enemies = obs[:, self.enemy_f_start:self.ally_f_start].view(b_size, self.n_enemy, self.enemy_dim)
         allies = obs[:, self.ally_f_start:self.other_f_start].view(b_size, self.n_ally, self.ally_dim )
-        positions = torch.LongTensor(self.position.repeat(b_size,1))
+        positions = torch.LongTensor(torch.arange(0, self.n_agents).repeat(b_size,1))
 
         enemy_embs = f.relu(self.emb_e(enemies))
         ally_embs = f.relu(self.emb_a(allies))
