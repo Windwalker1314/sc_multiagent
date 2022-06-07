@@ -48,7 +48,8 @@ class Transformer(nn.Module):
         enemies = obs[:, self.enemy_f_start:self.ally_f_start].view(b_size, self.n_enemy, self.enemy_dim)
         allies = obs[:, self.ally_f_start:self.other_f_start].view(b_size, self.n_ally, self.ally_dim )
         positions = torch.LongTensor(torch.arange(0, self.n_agents).repeat(b_size,1))
-
+        if self.args.cuda:
+            positions = positions.cuda()
         enemy_embs = f.relu(self.emb_e(enemies))
         ally_embs = f.relu(self.emb_a(allies))
         m_embs = f.relu(self.emb_m(m)).unsqueeze(1)
