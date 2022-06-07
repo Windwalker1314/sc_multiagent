@@ -18,10 +18,15 @@ class Transformer(nn.Module):
         self.other_f_start = self.ally_f_size + self.ally_f_start
         self.m_f_size = input_shape - self.enemy_f_size - self.ally_f_size
 
+        self.n_agents = self.n_ally+self.n_enemy+1
+        self.position = torch.arange(0, self.n_agents)  # n_agents
+
         self.emb_dim = 16
         self.emb_m = nn.Linear(self.m_f_size, self.emb_dim)
         self.emb_e = nn.Linear(self.enemy_dim, self.emb_dim)
         self.emb_a = nn.Linear(self.ally_dim, self.emb_dim)
+
+        self.emb_p = nn.Embedding(self.n_agents, self.emb_dim)  # n_agents emb_dim
 
         self.qkv_dim = 16
         self.w_q = nn.Linear(self.emb_dim, self.qkv_dim)
@@ -35,18 +40,21 @@ class Transformer(nn.Module):
         self.fc2 = nn.Linear(args.rnn_hidden_dim, args.n_actions)
 
     def forward(self, obs, hidden_state):
+        b_size = obs.shape[0]
+        
         m_move = obs[:, :self.args.move_feats_dim]
         m_other = obs[:, self.other_f_start:]
         m = torch.cat([m_move,m_other],dim=1)
-
         
-        enemies = obs[:, self.enemy_f_start:self.ally_f_start].view(-1, self.n_enemy, self.enemy_dim)
-        allies = obs[:, self.ally_f_start:self.other_f_start].view(-1, self.n_ally, self.ally_dim )
+        enemies = obs[:, self.enemy_f_start:self.ally_f_start].view(b_size, self.n_enemy, self.enemy_dim)
+        allies = obs[:, self.ally_f_start:self.other_f_start].view(b_size, self.n_ally, self.ally_dim )
+        positions = torch.LongTensor(self.position.repeat(b_size,1))
 
         enemy_embs = f.relu(self.emb_e(enemies))
         ally_embs = f.relu(self.emb_a(allies))
         m_embs = f.relu(self.emb_m(m)).unsqueeze(1)
-        x = torch.cat([m_embs,ally_embs,enemy_embs], dim=1)
+        p_emb = f.relu(self.emb_p(positions))
+        x = torch.cat([m_embs,ally_embs,enemy_embs], dim=1) + p_emb
 
         q = self.w_q(x)
         k = self.w_k(x)
