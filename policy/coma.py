@@ -4,6 +4,7 @@ from network.base_net import RNN
 from network.commnet import CommNet
 from network.g2anet import G2ANet
 from network.coma_critic import ComaCritic
+from network.transformer import Transformer
 from common.utils import td_lambda_target
 
 
@@ -27,6 +28,9 @@ class COMA:
         if self.args.alg == 'coma':
             print('Init alg coma')
             self.eval_rnn = RNN(actor_input_shape, args)
+        elif self.args.alg == 'coma_lot':
+            print("Init comma lot")
+            self.eval_rnn = Transformer(actor_input_shape, args)
         elif self.args.alg == 'coma+commnet':
             print('Init alg coma+commnet')
             self.eval_rnn = CommNet(actor_input_shape, args)

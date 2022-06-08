@@ -22,7 +22,7 @@ class Agents:
         elif args.alg == 'qmix':
             from policy.qmix import QMIX
             self.policy = QMIX(args)
-        elif args.alg == 'coma':
+        elif args.alg in ["coma","coma_lot"]:
             from policy.coma import COMA
             self.policy = COMA(args)
         elif args.alg == 'qtran_alt':
@@ -75,7 +75,7 @@ class Agents:
             q_value, self.policy.eval_hidden[:, agent_num, :] = self.policy.eval_rnn(inputs, hidden_state)
 
         # choose action from q value
-        if self.args.alg == 'coma' or self.args.alg == 'central_v' or self.args.alg == 'reinforce':
+        if self.args.alg in ["coma","coma_lot",'central_v','reinforce']:
             action = self._choose_action_from_softmax(q_value.cpu(), avail_actions, epsilon, evaluate)
         else:
             q_value[avail_actions == 0.0] = - float("inf")
