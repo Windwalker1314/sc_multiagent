@@ -23,7 +23,7 @@ class AVDNNet(nn.Module):
         v = self.v(obs_emb)
 
         o, w = self.attn(q,k,v)
-        o = o[:,0,:]
+        o = o.mean(dim=1)
         out = f.relu(self.fc1(o))
         out = out.reshape(b, t, 1, nq)
         return out
