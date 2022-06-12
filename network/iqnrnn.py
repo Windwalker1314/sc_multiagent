@@ -44,7 +44,7 @@ class IQNRNN(nn.Module):
             rnd_q = rnd_q.cuda()
         tau = rnd_q.view(b, 1, nq).expand(-1, n, -1)
         tau = tau.unsqueeze(3).expand(-1,-1,-1,self.qe).reshape(-1, self.qe)
-        i = torch.arange(0,self.qe).view(1,-1).expand(b*n*nq, self.qe)
+        i = torch.arange(1,self.qe+1).view(1,-1).expand(b*n*nq, self.qe)
         if self.args.cuda:
             i = i.cuda()
         phi = f.relu(self.phi(torch.cos(math.pi * i * tau))) # b*n*nq, rnn

@@ -10,10 +10,7 @@ class Agents:
         self.n_agents = args.n_agents
         self.state_shape = args.state_shape
         self.obs_shape = args.obs_shape
-        if args.alg == 'vdn':
-            from policy.vdn import VDN
-            self.policy = VDN(args)
-        elif args.alg =='vdn_lot':
+        if args.alg in ['vdn', "vdn_lot"]:
             from policy.vdn import VDN
             self.policy = VDN(args)
         elif args.alg == 'iql':
@@ -40,7 +37,7 @@ class Agents:
         elif args.alg == 'reinforce':
             from policy.reinforce import Reinforce
             self.policy = Reinforce(args)
-        elif args.alg == "ddn":
+        elif args.alg in ["ddn", "dan"]:
             from policy.ddn import DDN
             self.policy = DDN(args)
         else:
@@ -74,7 +71,7 @@ class Agents:
             if self.args.cuda:
                 maven_z = maven_z.cuda()
             q_value, self.policy.eval_hidden[:, agent_num, :] = self.policy.eval_rnn(inputs, hidden_state, maven_z)
-        elif self.args.alg == 'ddn':
+        elif self.args.alg in ['ddn', 'dan']:
             Z_val, self.policy.eval_hidden[:, agent_num, :], rnd_q = self.policy.eval_rnn(inputs,hidden_state,forward_type="approx")
             q_value = Z_val.mean(dim=2)
         else:

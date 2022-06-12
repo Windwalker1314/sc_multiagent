@@ -2,6 +2,7 @@ import torch
 import os
 from network.iqnrnn import IQNRNN
 from network.vdn_net import VDNNet
+from network.avdn_net import AVDNNet
 from network.transformer import Transformer
 import torch.nn.functional as f
 
@@ -24,14 +25,18 @@ class DDN:
         if args.reuse_network:
             input_shape += self.n_agents
 
+        self.eval_rnn = IQNRNN(input_shape, args)  # 每个agent选动作的网络
+        self.target_rnn = IQNRNN(input_shape, args)
         # 神经网络
         if args.alg == 'ddn':
-            self.eval_rnn = IQNRNN(input_shape, args)  # 每个agent选动作的网络
-            self.target_rnn = IQNRNN(input_shape, args)
+            self.eval_vdn_net = VDNNet()  # 把agentsQ值加起来的网络
+            self.target_vdn_net = VDNNet()
+        elif args.alg == 'dan':
+            self.eval_vdn_net = AVDNNet(self.nq, args)
+            self.target_vdn_net = AVDNNet(self.ntq, args)
         else:
             raise Exception("No such algorithm")
-        self.eval_vdn_net = VDNNet()  # 把agentsQ值加起来的网络
-        self.target_vdn_net = VDNNet()
+        
         self.args = args
         if self.args.cuda:
             self.eval_rnn.cuda()
@@ -84,6 +89,7 @@ class DDN:
         # TODO pymarl中取得经验没有取最后一条，找出原因
         u, r, avail_u, avail_u_next, terminated = batch['u'], batch['r'],  batch['avail_u'], \
                                                   batch['avail_u_next'], batch['terminated']
+
         mask = 1 - batch["padded"].float()  # 用来把那些填充的经验的TD-error置0，从而不让它们影响到学习
         if self.args.cuda:
             u = u.cuda()
@@ -97,7 +103,7 @@ class DDN:
         # rnd_qs : (b, t, n, nq)
         action_for_zs = u.unsqueeze(4).expand(-1,-1,-1,-1,self.nq)
         chosen_action_Zs = torch.gather(Z_evals, dim=3, index = action_for_zs).squeeze(3)
-        # chosen_action_zs: (b, t, n, nq)
+       
         avail_actions = avail_u.unsqueeze(4).expand(-1,-1,-1,-1, self.nq)
         target_avail_actions = avail_u_next.unsqueeze(4).expand(-1, -1, -1, -1, self.ntq)
         Z_targets[target_avail_actions==0] = -9999999
@@ -107,8 +113,12 @@ class DDN:
         target_max_Zs = torch.gather(Z_targets, dim=3, index=target_max_actions).squeeze(3) #(b,t,n,ntq)
 
         # Mixer
-        chosen_action_Z = self.eval_vdn_net(chosen_action_Zs)
-        target_max_Z = self.target_vdn_net(target_max_Zs)
+        if self.args.alg == 'ddn':
+            chosen_action_Z = self.eval_vdn_net(chosen_action_Zs)  # chosen_action_zs: (b, t, n, nq) -> (b,t,nq)
+            target_max_Z = self.target_vdn_net(target_max_Zs)
+        elif self.args.alg == 'dan':
+            chosen_action_Z = self.eval_vdn_net(chosen_action_Zs)  # chosen_action_zs: (b, t, n, nq) -> (b,t,nq)
+            target_max_Z = self.target_vdn_net(target_max_Zs)    # b, t, ntq
         
         targets = r.unsqueeze(3) + (self.args.gamma * (1-terminated)).unsqueeze(3) * target_max_Z
         # targets (b, t, 1, ntq)
