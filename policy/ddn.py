@@ -175,6 +175,8 @@ class DDN:
             if self.args.cuda:
                 inputs = inputs.cuda()
                 inputs_next = inputs_next.cuda()
+                self.eval_hidden = self.eval_hidden.cuda()
+                self.target_hidden = self.target_hidden.cuda()
             Z_eval, self.eval_hidden, rnd_q = self.eval_rnn(inputs, self.eval_hidden, "policy")
             Z_target, self.target_hidden, rnd_tq = self.target_rnn(inputs_next,self.target_hidden, "target")
             Z_eval = Z_eval.view(b, self.n_agents, self.n_actions, self.nq)
