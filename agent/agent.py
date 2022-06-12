@@ -40,6 +40,9 @@ class Agents:
         elif args.alg == 'reinforce':
             from policy.reinforce import Reinforce
             self.policy = Reinforce(args)
+        elif args.alg == "ddn":
+            from policy.ddn import DDN
+            self.policy = DDN(args)
         else:
             raise Exception("No such algorithm")
         self.args = args
@@ -71,6 +74,9 @@ class Agents:
             if self.args.cuda:
                 maven_z = maven_z.cuda()
             q_value, self.policy.eval_hidden[:, agent_num, :] = self.policy.eval_rnn(inputs, hidden_state, maven_z)
+        elif self.args.alg == 'ddn':
+            Z_val, self.policy.eval_hidden[:, agent_num, :], rnd_q = self.policy.eval_rnn(inputs,hidden_state,forward_type="approx")
+            q_value = Z_val.mean(dim=2)
         else:
             q_value, self.policy.eval_hidden[:, agent_num, :] = self.policy.eval_rnn(inputs, hidden_state)
 

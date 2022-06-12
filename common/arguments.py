@@ -64,6 +64,12 @@ def get_coma_args(args):
 
     return args
 
+def get_iqn_args(args):
+    args.quantile_emb_dim = 8
+    args.n_quantiles = 32
+    args.n_target_quantiles = 64
+    args.n_approx_quantiles = 48
+    return args
 
 # arguments of vnd、 qmix、 qtran
 def get_mixer_args(args):
@@ -87,7 +93,7 @@ def get_mixer_args(args):
 
     # experience replay
     args.batch_size = 32
-    args.buffer_size = int(5e3)
+    args.buffer_size = int(1e3)
 
     # how often to save the model
     args.save_cycle = 5000

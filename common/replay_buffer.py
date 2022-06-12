@@ -1,7 +1,6 @@
 import numpy as np
 import threading
 
-
 class ReplayBuffer:
     def __init__(self, args):
         self.args = args

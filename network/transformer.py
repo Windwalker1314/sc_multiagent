@@ -20,19 +20,19 @@ class Transformer(nn.Module):
 
         self.n_agents = self.n_ally+self.n_enemy+1
 
-        self.emb_dim = 32
+        self.emb_dim = 8
         self.emb_m = nn.Linear(self.m_f_size, self.emb_dim)
         self.emb_e = nn.Linear(self.enemy_dim, self.emb_dim)
         self.emb_a = nn.Linear(self.ally_dim, self.emb_dim)
 
         self.emb_p = nn.Embedding(self.n_agents, self.emb_dim)  # n_agents emb_dim
 
-        self.qkv_dim = 32
+        self.qkv_dim = 8
         self.w_q = nn.Linear(self.emb_dim, self.qkv_dim)
         self.w_k = nn.Linear(self.emb_dim, self.qkv_dim)
         self.w_v = nn.Linear(self.emb_dim, self.qkv_dim)
 
-        self.attn = nn.MultiheadAttention(self.qkv_dim, 4)
+        self.attn = nn.MultiheadAttention(self.qkv_dim, 1)
 
         self.fc1 = nn.Linear(self.qkv_dim, args.rnn_hidden_dim)
         self.rnn = nn.GRUCell(args.rnn_hidden_dim, args.rnn_hidden_dim)
