@@ -70,7 +70,7 @@ class DDN:
         # 学习过程中，要为每个episode的每个agent都维护一个eval_hidden、target_hidden
         self.eval_hidden = None
         self.target_hidden = None
-        print('Init alg DDN')
+        print('Init alg', self.args.alg)
 
     def learn(self, batch, max_episode_len, train_step, epsilon=None):  # train_step表示是第几次学习，用来控制更新target_net网络的参数
         '''
@@ -87,11 +87,14 @@ class DDN:
             else:
                 batch[key] = torch.tensor(batch[key], dtype=torch.float32)
         # TODO pymarl中取得经验没有取最后一条，找出原因
-        u, r, avail_u, avail_u_next, terminated = batch['u'], batch['r'],  batch['avail_u'], \
-                                                  batch['avail_u_next'], batch['terminated']
+        s, s_next, u, r, avail_u, avail_u_next, terminated = batch['s'], batch['s_next'], \
+                                                             batch['u'], batch['r'],  batch['avail_u'], \
+                                                             batch['avail_u_next'], batch['terminated']
 
         mask = 1 - batch["padded"].float()  # 用来把那些填充的经验的TD-error置0，从而不让它们影响到学习
         if self.args.cuda:
+            s = s.cuda()
+            s_next = s_next.cuda()
             u = u.cuda()
             r = r.cuda()
             mask = mask.cuda()
@@ -109,16 +112,16 @@ class DDN:
         Z_targets[target_avail_actions==0] = -9999999
 
         target_max_actions = Z_targets.mean(dim=4).max(dim=3,keepdim=True)[1]  # (b, t, n, 1) argmax E(Z)
-        target_max_actions = target_max_actions.unsqueeze(4).expand(-1,-1,-1,-1, self.ntq) # (b,t,n,1,ntq)
-        target_max_Zs = torch.gather(Z_targets, dim=3, index=target_max_actions).squeeze(3) #(b,t,n,ntq)
+        target_max_actions = target_max_actions.unsqueeze(4).expand(-1,-1,-1,-1, self.ntq) # (b,t,n,1,ntq) 
+        target_max_Zs = torch.gather(Z_targets, dim=3, index=target_max_actions).squeeze(3) #(b,t,n,ntq)  
 
         # Mixer
         if self.args.alg == 'ddn':
             chosen_action_Z = self.eval_vdn_net(chosen_action_Zs)  # chosen_action_zs: (b, t, n, nq) -> (b,t,nq)
             target_max_Z = self.target_vdn_net(target_max_Zs)
         elif self.args.alg == 'dan':
-            chosen_action_Z = self.eval_vdn_net(chosen_action_Zs)  # chosen_action_zs: (b, t, n, nq) -> (b,t,nq)
-            target_max_Z = self.target_vdn_net(target_max_Zs)    # b, t, ntq
+            chosen_action_Z = self.eval_vdn_net(chosen_action_Zs, s)  # chosen_action_zs: (b, t, n, nq) -> (b,t,nq)
+            target_max_Z = self.target_vdn_net(target_max_Zs, s_next)    # b, t, ntq
         
         targets = r.unsqueeze(3) + (self.args.gamma * (1-terminated)).unsqueeze(3) * target_max_Z
         # targets (b, t, 1, ntq)
