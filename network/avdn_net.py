@@ -7,7 +7,7 @@ class AVDNNet(nn.Module):
     def __init__(self, input_shape, args):
         super(AVDNNet, self).__init__()
         self.args = args
-        self.encoding = nn.Linear(input_shape, args.rnn_hidden_dim)  # 对所有agent的obs解码
+        self.encoding = nn.Linear(input_shape, args.rnn_hidden_dim) 
         self.q = nn.Linear(args.rnn_hidden_dim, args.attention_dim, bias=False)
         self.k = nn.Linear(args.rnn_hidden_dim, args.attention_dim, bias=False)
         self.v = nn.Linear(args.rnn_hidden_dim, args.attention_dim)
