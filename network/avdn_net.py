@@ -38,12 +38,12 @@ class AVDNNet(nn.Module):
         v = self.v(obs_emb)
 
         o, w = self.attn(q,k,v,mask)
-        o = o.reshape(b, t, n, nq)
-        Z_att_total = o.sum(dim=2, keepdim=True) # b, t, 1, nq
+        Z_att = o.reshape(b, t, n, nq)
+        Z_att_total = Z_att.sum(dim=2, keepdim=True) # b, t, 1, nq
 
-        Q_att_total = o.mean(dim=3, keepdim=True).sum(dim=2, keepdim=True).expand(-1,-1,-1,nq)  # b,t,1,nq
+        Q_att_total = Z_att.mean(dim=3, keepdim=True).sum(dim=2, keepdim=True).expand(-1,-1,-1,nq)  # b,t,1,nq
 
-        q_values = z_values.mean(dim=2) # b*t, n
+        q_values = Z_att.mean(dim=3) # b*t, n
         Q_mix = self.forward_qmix(q_values, states).expand(-1,-1,-1,nq)
 
         return Z_att_total - Q_att_total + Q_mix
@@ -53,12 +53,12 @@ class AVDNNet(nn.Module):
         # q_vals_sum : b, t, 1, 1  (Q_total)
         # q_joint_expected: b, t, 1, 1 (Q mix, from q_vals_expected)
         # q_mixture - q_vals_sum + q_joint_expected (Ztotal - Q_total + Q_mix) = Z mix
-        # Z_att_total - E(Z_att_total) + Q_mix
+        # Z_att_total - E(Z_att_total) + Q_att_mix
     
     def forward_qmix(self, q_values, states):
         n = q_values.shape[-1]
         b, t, s = states.shape
-        q_values = q_values.view(-1, 1, n) 
+        q_values = q_values.view(-1, 1, n) # bt, 1, n
         states = states.reshape(-1, s)  # bt, s
         w1 = torch.abs(self.state_w1(states))
         b1 = self.state_b1(states)
