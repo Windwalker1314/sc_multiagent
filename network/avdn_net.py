@@ -25,7 +25,6 @@ class AVDNNet(nn.Module):
 
     def forward(self, z_values, states):
         b, t, n, nq = z_values.shape
-        z_values = z_values.reshape(b*t, n, nq) # b*t, n, nq
         """mask = z_values.mean(dim=2)<-999999
         mask = mask.clone().detach()
         mask = mask.permute(1,0)
@@ -43,12 +42,14 @@ class AVDNNet(nn.Module):
 
         Q_att_total = Z_att.mean(dim=3, keepdim=True).sum(dim=2, keepdim=True).expand(-1,-1,-1,nq)  # b,t,1,nq"""
 
-        Z_total = z_values.sum(dim=1,keepdim=True) # bt, 1, nq
+        Z_total = z_values.sum(dim=2,keepdim=True) # b, t, 1, nq
 
-        q_vals = z_values.mean(dim=2) # b*t, n
-        q_total = q_vals.sum(dim=1,keepdim=True).unsqueeze(2).expand(-1,-1,nq) # bt,1, nq
-        Q_mix = self.forward_qmix(q_vals, states).expand(-1,-1,-1,nq)
+        q_vals = z_values.mean(dim=3) # b, t, n
+        q_total = q_vals.sum(dim=2,keepdim=True).unsqueeze(3).expand(-1,-1,-1,nq) # b, t, 1, nq
+        Q_mix = self.forward_qmix(q_vals, states).expand(-1,-1,-1,nq) # b, t, 1, nq
 
+        Z_total = Z_total.reshape(b, t, 1, nq)
+        q_total = q_total.reshape(b, t, 1, nq)
         return Z_total - q_total + Q_mix
 
         # q_mixture : b, t, 1, nq  (sum n)
