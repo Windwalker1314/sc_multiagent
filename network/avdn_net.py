@@ -41,12 +41,11 @@ class AVDNNet(nn.Module):
         Z_att = o.reshape(b, t, n, nq)
         Z_att_total = Z_att.sum(dim=2, keepdim=True) # b, t, 1, nq
 
-        Q_att_total = Z_att.mean(dim=3, keepdim=True).sum(dim=2, keepdim=True).expand(-1,-1,-1,nq)  # b,t,1,nq
+        #Q_att_total = Z_att.mean(dim=3, keepdim=True).sum(dim=2, keepdim=True).expand(-1,-1,-1,nq)  # b,t,1,nq
+        #q_att = Z_att.mean(dim=3) # b*t, n
+        #Q_mix = self.forward_qmix(q_att, states).expand(-1,-1,-1,nq)
 
-        q_values = Z_att.mean(dim=3) # b*t, n
-        Q_mix = self.forward_qmix(q_values, states).expand(-1,-1,-1,nq)
-
-        return Z_att_total - Q_att_total + Q_mix
+        return Z_att_total #- Q_att_total + Q_mix
 
         # q_mixture : b, t, 1, nq  (sum n)
         # q_vals_expected : b, t, n, 1 (mean nq)
