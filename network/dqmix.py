@@ -3,15 +3,10 @@ import torch
 import torch.nn.functional as f
 
 
-class AVDNNet(nn.Module):
+class DQMIX(nn.Module):
     def __init__(self, input_shape, args):
-        super(AVDNNet, self).__init__()
+        super(DQMIX, self).__init__()
         self.args = args
-        self.encoding = nn.Linear(input_shape, args.rnn_hidden_dim) 
-        self.q = nn.Linear(args.rnn_hidden_dim, args.attention_dim, bias=False)
-        self.k = nn.Linear(args.rnn_hidden_dim, args.attention_dim, bias=False)
-        self.v = nn.Linear(args.rnn_hidden_dim, args.attention_dim)
-        self.attn = nn.MultiheadAttention(args.attention_dim, 2)
 
         self.state_w1 = nn.Linear(args.state_shape, args.n_agents * args.qmix_hidden_dim)
         self.state_w2 = nn.Linear(args.state_shape, args.qmix_hidden_dim * 1)
@@ -25,23 +20,6 @@ class AVDNNet(nn.Module):
 
     def forward(self, z_values, states):
         b, t, n, nq = z_values.shape
-        """mask = z_values.mean(dim=2)<-999999
-        mask = mask.clone().detach()
-        mask = mask.permute(1,0)
-        if self.args.cuda:
-            mask = mask.cuda()
-        obs_emb = f.relu(self.encoding(z_values))  
-
-        q = self.q(obs_emb)  # b*t, n, 64
-        k = self.k(obs_emb)  # b*t, 64, n -> bt, n, n
-        v = self.v(obs_emb)
-
-        o, w = self.attn(q,k,v,mask)
-        Z_att = o.reshape(b, t, n, nq)
-        Z_att_total = Z_att.sum(dim=2, keepdim=True) # b, t, 1, nq
-
-        Q_att_total = Z_att.mean(dim=3, keepdim=True).sum(dim=2, keepdim=True).expand(-1,-1,-1,nq)  # b,t,1,nq"""
-
         Z_total = z_values.sum(dim=2,keepdim=True) # b, t, 1, nq
 
         q_vals = z_values.mean(dim=3) # b, t, n

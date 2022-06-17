@@ -2,7 +2,8 @@ import torch
 import os
 from network.iqnrnn import IQNRNN
 from network.vdn_net import VDNNet
-from network.avdn_net import AVDNNet
+from network.dqmix import DQMIX
+from network.dqatten import DQATTEN
 from network.transformer import Transformer
 import torch.nn.functional as f
 
@@ -31,9 +32,12 @@ class DDN:
         if args.alg == 'ddn':
             self.eval_vdn_net = VDNNet()  # 把agentsQ值加起来的网络
             self.target_vdn_net = VDNNet()
-        elif args.alg == 'dan':
-            self.eval_vdn_net = AVDNNet(self.nq, args)
-            self.target_vdn_net = AVDNNet(self.ntq, args)
+        elif args.alg == 'dmix':
+            self.eval_vdn_net = DQMIX(self.nq, args)
+            self.target_vdn_net = DQMIX(self.ntq, args)
+        elif args.alg == 'datten':
+            self.eval_vdn_net = DQATTEN(self.nq, args)
+            self.target_vdn_net = DQATTEN(self.ntq, args)
         else:
             raise Exception("No such algorithm")
         
@@ -90,6 +94,7 @@ class DDN:
         s, s_next, u, r, avail_u, avail_u_next, terminated = batch['s'], batch['s_next'], \
                                                              batch['u'], batch['r'],  batch['avail_u'], \
                                                              batch['avail_u_next'], batch['terminated']
+        obs, obs_next =  batch['o'], batch['o_next']
 
         mask = 1 - batch["padded"].float()  # 用来把那些填充的经验的TD-error置0，从而不让它们影响到学习
         if self.args.cuda:
@@ -117,12 +122,15 @@ class DDN:
 
         # Mixer
         if self.args.alg == 'ddn':
-            chosen_action_Z = self.eval_vdn_net(chosen_action_Zs)  # chosen_action_zs: (b, t, n, nq) -> (b,t,nq)
+            chosen_action_Z = self.eval_vdn_net(chosen_action_Zs)  # chosen_action_zs: (b, t, n, nq) -> (b,t,1, nq)
             target_max_Z = self.target_vdn_net(target_max_Zs)
-        elif self.args.alg == 'dan':
-            chosen_action_Z = self.eval_vdn_net(chosen_action_Zs, s)  # chosen_action_zs: (b, t, n, nq) -> (b,t,nq)
-            target_max_Z = self.target_vdn_net(target_max_Zs, s_next)    # b, t, ntq
-        
+        elif self.args.alg == 'dmix':
+            chosen_action_Z = self.eval_vdn_net(chosen_action_Zs, s)  # chosen_action_zs: (b, t, n, nq) -> (b,t,1,nq)
+            target_max_Z = self.target_vdn_net(target_max_Zs, s_next)  
+        elif self.args.alg == 'datten':
+            chosen_action_Z = self.eval_vdn_net(chosen_action_Zs, s, obs)  # chosen_action_zs: (b, t, n, nq) -> (b,t,1,nq)
+            target_max_Z = self.target_vdn_net(target_max_Zs, s_next, obs_next)
+
         targets = r.unsqueeze(3) + (self.args.gamma * (1-terminated)).unsqueeze(3) * target_max_Z
         # targets (b, t, 1, ntq)
         targets = targets.unsqueeze(3).expand(-1,-1,-1,self.nq,-1) # (b,t,1,nq,ntq)

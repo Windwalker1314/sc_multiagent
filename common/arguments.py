@@ -85,7 +85,7 @@ def get_mixer_args(args):
     # epsilon greedy
     args.epsilon = 1
     args.min_epsilon = 0.05
-    anneal_steps = 50000
+    anneal_steps = 100000
     args.anneal_epsilon = (args.epsilon - args.min_epsilon) / anneal_steps
     args.epsilon_anneal_scale = 'step'
 
@@ -94,7 +94,7 @@ def get_mixer_args(args):
 
     # experience replay
     args.batch_size = 32
-    args.buffer_size = int(2e3)
+    args.buffer_size = int(2000)
 
     # how often to save the model
     args.save_cycle = 5000

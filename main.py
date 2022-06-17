@@ -18,7 +18,7 @@ if __name__ == '__main__':
             args = get_commnet_args(args)
         if args.alg.find('g2anet') > -1:
             args = get_g2anet_args(args)
-        if args.alg in ["ddn", "dan"]:
+        if args.alg in ["ddn", "dmix","datten"]:
             args = get_iqn_args(args)
         env = StarCraft2Env(map_name=args.map,
                             step_mul=args.step_mul,
