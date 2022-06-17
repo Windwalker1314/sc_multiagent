@@ -62,9 +62,13 @@ class DQATTEN(nn.Module):
             q = wq(states)
             all_querys_out.append(q)
         all_querys_out = torch.cat(all_querys_out, dim=0) # h, bt, qkv
+        
         for wk in self.keys_nn:
-            key_out = [wk(ui) for ui in u]
+            key_out = []
+            for ui in u:
+                key_out.append(wk(ui))
             key_out = torch.cat(key_out, dim=0)
+            if self.args.cuda: key_out = key_out.cuda()
             all_keys_out.append(key_out)
         all_keys_out = torch.cat(all_keys_out, dim=0)
 

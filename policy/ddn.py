@@ -98,6 +98,8 @@ class DDN:
 
         mask = 1 - batch["padded"].float()  # 用来把那些填充的经验的TD-error置0，从而不让它们影响到学习
         if self.args.cuda:
+            obs = obs.cuda()
+            obs_next = obs_next.cuda()
             s = s.cuda()
             s_next = s_next.cuda()
             u = u.cuda()
