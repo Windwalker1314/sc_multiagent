@@ -74,9 +74,8 @@ class DQATTEN(nn.Module):
             atten_weights.append(atten_w)
             assert(atten_w.shape==(b*t, 1, n))
         atten_weights = torch.stack(atten_weights,dim=1).squeeze(2)  # bt, h, n
-        if self.args.cuda:
-            atten_weights = atten_weights.cuda()
-        w = torch.sum(atten_weights, dim = 1) # bt, n
-        b = self.state_b(states).view(-1,1) # bt, 1
-        assert(w.shape==(b*t, n))
-        return w, b
+        assert(atten_weights.shape == (b*t, self.n_head, n))
+        head_atten = torch.sum(atten_weights, dim = 1) # bt, n
+        v = self.state_b(states).view(-1,1) # bt, 1
+        assert (head_atten.shape==(b*t, n))
+        return head_atten, v
