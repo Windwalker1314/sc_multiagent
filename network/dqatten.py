@@ -56,25 +56,8 @@ class DQATTEN(nn.Module):
         assert(u.shape == (n, b*t, o))
         q_values = q_values.view(-1,1,n) # bt, 1, n
 
-        all_querys_out = []
-        all_keys_out = []
-        for wq in self.querys_nn:
-            q = wq(states)
-            all_querys_out.append(q)
-        all_querys_out = torch.cat(all_querys_out, dim=0) # h, bt, qkv
-        
-        for wk in self.keys_nn:
-            key_out = []
-            for ui in u:
-                key_out.append(wk(ui))
-            key_out = torch.cat(key_out, dim=0)
-            if self.args.cuda: key_out = key_out.cuda()
-            all_keys_out.append(key_out)
-        all_keys_out = torch.cat(all_keys_out, dim=0)
-
-        if self.args.cuda:
-            all_querys_out = all_querys_out.cuda()
-            all_keys_out = all_keys_out.cuda()
+        all_querys_out = [wq(states) for wq in self.querys_nn]
+        all_keys_out = [[wk(ui) for ui in u] for wk in self.keys_nn]
 
         atten_weights = []
         for k, q, in zip(all_keys_out, all_querys_out):
