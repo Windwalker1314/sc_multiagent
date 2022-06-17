@@ -32,6 +32,7 @@ def get_common_args():
     parser.add_argument('--load_model', type=bool, default=False, help='whether to load the pretrained model')
     parser.add_argument('--evaluate', type=bool, default=False, help='whether to evaluate the model')
     parser.add_argument('--cuda', type=bool, default=False, help='whether to use the GPU')
+    parser.add_argument('--buffer_size', type=int, default=2000, help='replay buffer size')
     args = parser.parse_args()
     return args
 
@@ -94,7 +95,6 @@ def get_mixer_args(args):
 
     # experience replay
     args.batch_size = 32
-    args.buffer_size = int(2000)
 
     # how often to save the model
     args.save_cycle = 5000
