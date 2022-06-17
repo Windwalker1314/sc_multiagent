@@ -1,3 +1,4 @@
+from os import stat
 from tkinter import W
 import numpy as np
 from requests import head
@@ -55,8 +56,21 @@ class DQATTEN(nn.Module):
         assert(u.shape == (n, b*t, o))
         q_values = q_values.view(-1,1,n) # bt, 1, n
 
-        all_querys_out = [wq(states) for wq in self.querys_nn] # h, bt, qkv
-        all_keys_out = [[wk(ui) for ui in u] for wk in self.keys_nn] # h, n, bt, qkv
+        all_querys_out = []
+        all_keys_out = []
+        for wq in self.querys_nn:
+            q = wq(states)
+            all_querys_out.append(q)
+        all_querys_out = torch.cat(all_querys_out, dim=0) # h, bt, qkv
+        for wk in self.keys_nn:
+            key_out = [wk(ui) for ui in u]
+            key_out = torch.cat(key_out, dim=0)
+            all_keys_out.append(key_out)
+        all_keys_out = torch.cat(all_keys_out, dim=0)
+
+        if self.args.cuda:
+            all_querys_out = all_querys_out.cuda()
+            all_keys_out = all_keys_out.cuda()
 
         atten_weights = []
         for k, q, in zip(all_keys_out, all_querys_out):
@@ -73,6 +87,8 @@ class DQATTEN(nn.Module):
             atten_weights.append(atten_w)
             assert(atten_w.shape==(b*t, 1, n))
         atten_weights = torch.stack(atten_weights,dim=1).squeeze(2)  # bt, h, n
+        if self.args.cuda:
+            atten_weights = atten_weights.cuda()
         w = torch.sum(atten_weights, dim = 1) # bt, n
         b = self.state_b(states).view(-1,1) # bt, 1
         assert(w.shape==(b*t, n))
