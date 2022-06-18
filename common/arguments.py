@@ -65,11 +65,21 @@ def get_coma_args(args):
 
     return args
 
-def get_iqn_args(args):
+def get_ddn_args(args):
+    args.rnn_hidden_dim = 512
     args.quantile_emb_dim = 64
-    args.n_quantiles = 64
-    args.n_target_quantiles = 64
-    args.n_approx_quantiles = 64
+    args.n_quantiles = 1
+    args.n_target_quantiles = 1
+    args.n_approx_quantiles = 32
+    args.attention_dim = 64
+    return args
+
+def get_dmix_args(args):
+    args.rnn_hidden_dim = 512
+    args.quantile_emb_dim = 64
+    args.n_quantiles = 8
+    args.n_target_quantiles = 8
+    args.n_approx_quantiles = 32
     args.attention_dim = 64
     return args
 

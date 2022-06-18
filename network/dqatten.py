@@ -23,8 +23,8 @@ class DQATTEN(nn.Module):
             wk = nn.Linear(self.args.obs_shape, self.qkv_emb_dim, bias=False)
             self.keys_nn.append(wk)
         self.state_b = nn.Sequential(nn.Linear(self.args.state_shape, self.qkv_emb_dim),
-                               nn.ReLU(),
-                               nn.Linear(self.qkv_emb_dim, 1))
+                                    nn.ReLU(),
+                                    nn.Linear(self.qkv_emb_dim, 1))
 
         self.w_head = nn.Sequential(nn.Linear(self.args.state_shape,self.hypernet_emb),
                                     nn.ReLU(),

@@ -1,6 +1,6 @@
 from runner import Runner
 from smac.env import StarCraft2Env
-from common.arguments import get_common_args, get_iqn_args, get_coma_args, get_mixer_args, get_centralv_args, get_reinforce_args, get_commnet_args, get_g2anet_args
+from common.arguments import get_common_args,get_dmix_args, get_ddn_args, get_coma_args, get_mixer_args, get_centralv_args, get_reinforce_args, get_commnet_args, get_g2anet_args
 
 
 if __name__ == '__main__':
@@ -19,7 +19,9 @@ if __name__ == '__main__':
         if args.alg.find('g2anet') > -1:
             args = get_g2anet_args(args)
         if args.alg in ["ddn", "dmix","datten"]:
-            args = get_iqn_args(args)
+            args = get_ddn_args(args)
+        if args.alg in ["dmix", "datten"]:
+            args = get_dmix_args(args)
         env = StarCraft2Env(map_name=args.map,
                             step_mul=args.step_mul,
                             difficulty=args.difficulty,
