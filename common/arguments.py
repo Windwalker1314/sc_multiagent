@@ -19,20 +19,20 @@ def get_common_args():
     # qtran_alt, reinforce, coma+commnet, central_v+commnet, reinforce+commnet，
     # coma+g2anet, central_v+g2anet, reinforce+g2anet, maven
     parser.add_argument('--alg', type=str, default='reinforce+g2anet', help='the algorithm to train the agent')
-    parser.add_argument('--n_steps', type=int, default=2000000, help='total time steps')
+    parser.add_argument('--n_steps', type=int, default=6000000, help='total time steps')
     parser.add_argument('--n_episodes', type=int, default=1, help='the number of episodes before once training')
     parser.add_argument('--last_action', type=bool, default=True, help='whether to use the last action to choose action')
     parser.add_argument('--reuse_network', type=bool, default=True, help='whether to use one network for all agents')
     parser.add_argument('--gamma', type=float, default=0.99, help='discount factor')
     parser.add_argument('--optimizer', type=str, default="RMS", help='optimizer')
-    parser.add_argument('--evaluate_cycle', type=int, default=5000, help='how often to evaluate the model')
+    parser.add_argument('--evaluate_cycle', type=int, default=40000, help='how often to evaluate the model')
     parser.add_argument('--evaluate_epoch', type=int, default=32, help='number of the epoch to evaluate the agent')
     parser.add_argument('--model_dir', type=str, default='./model', help='model directory of the policy')
     parser.add_argument('--result_dir', type=str, default='./result', help='result directory of the policy')
     parser.add_argument('--load_model', type=bool, default=False, help='whether to load the pretrained model')
     parser.add_argument('--evaluate', type=bool, default=False, help='whether to evaluate the model')
     parser.add_argument('--cuda', type=bool, default=False, help='whether to use the GPU')
-    parser.add_argument('--buffer_size', type=int, default=2000, help='replay buffer size')
+    parser.add_argument('--buffer_size', type=int, default=5000, help='replay buffer size')
     args = parser.parse_args()
     return args
 

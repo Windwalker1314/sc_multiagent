@@ -32,7 +32,7 @@ class Runner:
         cur_time = time.time()
         m = 1
         while time_steps < self.args.n_steps:
-            if(time_steps>m*1000):
+            if(time_steps>m*5000):
                 print('Run {}, time_steps {}'.format(num, time_steps))
                 m+=1
                 print("Time:",time.time()-cur_time)
