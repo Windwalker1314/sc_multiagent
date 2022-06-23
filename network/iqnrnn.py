@@ -42,12 +42,15 @@ class IQNRNN(nn.Module):
         rnd_q = torch.rand(b * nq)
         if self.args.cuda:
             rnd_q = rnd_q.cuda()
-        tau = rnd_q.view(b, 1, nq).expand(-1, n, -1)
-        tau = tau.unsqueeze(3).expand(-1,-1,-1,self.qe).reshape(-1, self.qe)
-        i = torch.arange(1,self.qe+1).view(1,-1).expand(b*n*nq, self.qe)
+        tau = rnd_q.view(b*nq, 1).expand(-1, self.qe)
+        i = torch.arange(1,self.qe+1).view(1,-1).expand(b*nq, self.qe)
         if self.args.cuda:
             i = i.cuda()
-        phi = f.relu(self.phi(torch.cos(math.pi * i * tau))) # b*n*nq, rnn
+        phi = f.relu(self.phi(torch.cos(math.pi * i * tau)))
+        assert phi.shape == (b*nq, self.args.rnn_hidden_dim)
+        phi = phi.view(b, nq, self.args.rnn_hidden_dim)
+        phi = phi.unsqueeze(1).expand(-1, n, -1, -1).contiguous().view(-1, self.args.rnn_hidden_dim)
+        assert phi.shape == (b*n*nq, self.args.rnn_hidden_dim)
         Z_vals = self.g(psi2 * phi)
         Z_vals = Z_vals.view(b*n, nq, self.a).permute(0, 2, 1)
         rnd_q = rnd_q.view(b, nq)
