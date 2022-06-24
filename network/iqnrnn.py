@@ -20,7 +20,7 @@ class IQNRNN(nn.Module):
         self.phi = nn.Linear(self.qe, self.rhd)
         self.g = nn.Linear(self.rhd, self.a)
     
-    def forward(self, obs, hidden_state, forward_type=None):
+    def forward(self, obs, hidden_state, forward_type=None,rnd_q=None):
         x = f.relu(self.fc_obs(obs))
         h_in = hidden_state.reshape(-1, self.args.rnn_hidden_dim)
         psi = self.rnn(x, h_in)
@@ -39,7 +39,8 @@ class IQNRNN(nn.Module):
             b = psi.shape[0]
             n = 1
         psi2 = psi.reshape(b*n,1,self.rhd).expand(-1,nq, -1).reshape(-1,self.rhd) # b*n*nq, rnn
-        rnd_q = torch.rand(b * nq)
+        if rnd_q is None:
+            rnd_q = torch.rand(b * nq)
         if self.args.cuda:
             rnd_q = rnd_q.cuda()
         tau = rnd_q.view(b*nq, 1).expand(-1, self.qe)

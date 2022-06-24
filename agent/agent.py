@@ -44,7 +44,7 @@ class Agents:
             raise Exception("No such algorithm")
         self.args = args
 
-    def choose_action(self, obs, last_action, agent_num, avail_actions, epsilon, maven_z=None, evaluate=False):
+    def choose_action(self, obs, last_action, agent_num, avail_actions, epsilon, maven_z=None, evaluate=False,rnd_q = None):
         inputs = obs.copy()
         avail_actions_ind = np.nonzero(avail_actions)[0]  # index of actions which can be choose
 
@@ -64,7 +64,6 @@ class Agents:
         if self.args.cuda:
             inputs = inputs.cuda()
             hidden_state = hidden_state.cuda()
-
         # get q value
         if self.args.alg == 'maven':
             maven_z = torch.tensor(maven_z, dtype=torch.float32).unsqueeze(0)
@@ -72,7 +71,7 @@ class Agents:
                 maven_z = maven_z.cuda()
             q_value, self.policy.eval_hidden[:, agent_num, :] = self.policy.eval_rnn(inputs, hidden_state, maven_z)
         elif self.args.alg in ['ddn', "dmix",'datten']:
-            Z_val, self.policy.eval_hidden[:, agent_num, :], rnd_q = self.policy.eval_rnn(inputs,hidden_state,forward_type="approx")
+            Z_val, self.policy.eval_hidden[:, agent_num, :], rnd_q = self.policy.eval_rnn(inputs,hidden_state,forward_type="approx",rnd_q = rnd_q)
             q_value = Z_val.mean(dim=2)
         else:
             q_value, self.policy.eval_hidden[:, agent_num, :] = self.policy.eval_rnn(inputs, hidden_state)
@@ -86,7 +85,7 @@ class Agents:
                 action = np.random.choice(avail_actions_ind)  # action是一个整数
             else:
                 action = torch.argmax(q_value)
-        return action
+        return action, rnd_q
 
     def _choose_action_from_softmax(self, inputs, avail_actions, epsilon, evaluate=False):
         """
