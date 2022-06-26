@@ -14,6 +14,7 @@ class IQNRNN(nn.Module):
         self.naq = args.n_approx_quantiles  # n approx quantiles
         self.rhd = args.rnn_hidden_dim # rnn hidden dimension
         self.a = args.n_actions  # number of actions
+        self.input_shape= input_shape
 
         self.fc_obs = nn.Linear(input_shape, self.rhd)
         self.rnn = nn.GRUCell(self.rhd, self.rhd)
@@ -21,6 +22,7 @@ class IQNRNN(nn.Module):
         self.g = nn.Linear(self.rhd, self.a)
     
     def forward(self, obs, hidden_state, forward_type=None,rnd_q=None):
+        obs = obs.reshape(-1, self.input_shape)
         x = f.relu(self.fc_obs(obs))
         h_in = hidden_state.reshape(-1, self.args.rnn_hidden_dim)
         psi = self.rnn(x, h_in)

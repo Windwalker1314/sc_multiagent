@@ -87,6 +87,38 @@ class Agents:
                 action = torch.argmax(q_value)
         return action, rnd_q
 
+    def choose_actions(self,obs,last_action, avail_actions, epsilon, evaluate):
+        inputs = obs.copy()
+        avail_actions_ind=[]
+        for avail_action in avail_actions:
+            avail_a_ind = np.nonzero(avail_action)[0]
+            avail_actions_ind.append(avail_a_ind)
+
+        agent_id = np.eye(self.n_agents)
+        if self.args.last_action:
+            inputs = np.hstack((inputs, last_action))
+        if self.args.reuse_network:
+            inputs = np.hstack((inputs, agent_id))
+        hidden_state = self.policy.eval_hidden
+        inputs = torch.tensor(inputs, dtype=torch.float32).unsqueeze(0)
+        avail_actions = torch.tensor(avail_actions, dtype=torch.float32).unsqueeze(0)
+        if self.args.cuda:
+            inputs = inputs.cuda()
+            hidden_state = hidden_state.cuda()
+        if self.args.alg in ['ddn', "dmix",'datten']:
+            Z_val, self.policy.eval_hidden, rnd_q = self.policy.eval_rnn(inputs,hidden_state,forward_type="approx")
+            q_value = Z_val.mean(dim=2) # b*n, a
+        q_value=q_value.reshape(-1, self.n_agents, self.n_actions)
+        q_value[avail_actions == 0.0] = -float("inf")
+        if np.random.uniform() < epsilon:
+            actions = list(map(np.random.choice, avail_actions_ind))
+        else:
+            actions = torch.argmax(q_value,dim=2)[0].tolist()
+        return actions
+
+
+
+
     def _choose_action_from_softmax(self, inputs, avail_actions, epsilon, evaluate=False):
         """
         :param inputs: # q_value of all actions

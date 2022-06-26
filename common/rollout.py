@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 from torch.distributions import one_hot_categorical
+import torch.nn.functional as f
 import time
 
 
@@ -53,21 +54,32 @@ class RolloutWorker:
             state = self.env.get_state()
             actions, avail_actions, actions_onehot = [], [], []
             rnd_q = None
-            for agent_id in range(self.n_agents):
-                avail_action = self.env.get_avail_agent_actions(agent_id)
-                if self.args.alg == 'maven':
-                    action,rnd_q = self.agents.choose_action(obs[agent_id], last_action[agent_id], agent_id,
-                                                       avail_action, epsilon, maven_z, evaluate,rnd_q)
-                else:
-                    action,rnd_q = self.agents.choose_action(obs[agent_id], last_action[agent_id], agent_id,
-                                                       avail_action, epsilon, evaluate,rnd_q)
-                # generate onehot vector of th action
-                action_onehot = np.zeros(self.args.n_actions)
-                action_onehot[action] = 1
-                actions.append(np.int(action))
-                actions_onehot.append(action_onehot)
-                avail_actions.append(avail_action)
-                last_action[agent_id] = action_onehot
+            if self.args.alg=="ddn":
+                avail_actions = self.env.get_avail_actions()
+                actions = self.agents.choose_actions(obs,last_action, avail_actions, epsilon, evaluate)
+                for agent_id in range(self.n_agents):
+                    action = actions[agent_id]
+                    action_onehot = np.zeros(self.args.n_actions)
+                    action_onehot[action] = 1
+                    actions_onehot.append(action_onehot)
+                    last_action[agent_id] = action_onehot
+                
+            else:
+                for agent_id in range(self.n_agents):
+                    avail_action = self.env.get_avail_agent_actions(agent_id)
+                    if self.args.alg == 'maven':
+                        action,rnd_q = self.agents.choose_action(obs[agent_id], last_action[agent_id], agent_id,
+                                                        avail_action, epsilon, maven_z, evaluate,rnd_q)
+                    else:
+                        action,rnd_q = self.agents.choose_action(obs[agent_id], last_action[agent_id], agent_id,
+                                                        avail_action, epsilon, evaluate,rnd_q)
+                    # generate onehot vector of th action
+                    action_onehot = np.zeros(self.args.n_actions)
+                    action_onehot[action] = 1
+                    actions.append(np.int(action))
+                    actions_onehot.append(action_onehot)
+                    avail_actions.append(avail_action)
+                    last_action[agent_id] = action_onehot
 
             reward, terminated, info = self.env.step(actions)
             win_tag = True if terminated and 'battle_won' in info and info['battle_won'] else False
