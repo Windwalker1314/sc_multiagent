@@ -12,7 +12,6 @@ def get_common_args():
     parser.add_argument('--difficulty', type=str, default='7', help='the difficulty of the game')
     parser.add_argument('--game_version', type=str, default='latest', help='the version of the game')
     parser.add_argument('--map', type=str, default='5m_vs_6m', help='the map of the game')
-    parser.add_argument('--seed', type=int, default=123, help='random seed')
     parser.add_argument('--step_mul', type=int, default=8, help='how many steps to make an action')
     parser.add_argument('--replay_dir', type=str, default='', help='absolute path to save the replay')
     # The alternative algorithms are vdn, coma, central_v, qmix, qtran_base,
@@ -96,7 +95,7 @@ def get_mixer_args(args):
     # epsilon greedy
     args.epsilon = 1
     args.min_epsilon = 0.05
-    anneal_steps = 50000
+    anneal_steps = 200000
     args.anneal_epsilon = (args.epsilon - args.min_epsilon) / anneal_steps
     args.epsilon_anneal_scale = 'step'
 

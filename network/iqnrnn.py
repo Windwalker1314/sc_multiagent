@@ -8,12 +8,12 @@ class IQNRNN(nn.Module):
     def __init__(self, input_shape, args) -> None:
         super(IQNRNN,self).__init__()
         self.args = args
-        self.qe = args.quantile_emb_dim # quantile embedding dimension
-        self.nq = args.n_quantiles   # n quantiles
+        self.qe = args.quantile_emb_dim     # quantile embedding dimension
+        self.nq = args.n_quantiles          # n quantiles
         self.ntq = args.n_target_quantiles  # n target quantiles
         self.naq = args.n_approx_quantiles  # n approx quantiles
-        self.rhd = args.rnn_hidden_dim # rnn hidden dimension
-        self.a = args.n_actions  # number of actions
+        self.rhd = args.rnn_hidden_dim      # rnn hidden dimension
+        self.a = args.n_actions             # number of actions
         self.input_shape= input_shape
 
         self.fc_obs = nn.Linear(input_shape, self.rhd)
@@ -40,13 +40,14 @@ class IQNRNN(nn.Module):
         else:
             b = psi.shape[0]
             n = 1
+        assert (n!=1)
         psi2 = psi.reshape(b*n,1,self.rhd).expand(-1,nq, -1).reshape(-1,self.rhd) # b*n*nq, rnn
         if rnd_q is None:
             rnd_q = torch.rand(b * nq)
         if self.args.cuda:
             rnd_q = rnd_q.cuda()
         tau = rnd_q.view(b*nq, 1).expand(-1, self.qe)
-        i = torch.arange(1,self.qe+1).view(1,-1).expand(b*nq, self.qe)
+        i = torch.arange(0,self.qe).view(1,-1).expand(b*nq, self.qe)
         if self.args.cuda:
             i = i.cuda()
         phi = f.relu(self.phi(torch.cos(math.pi * i * tau)))

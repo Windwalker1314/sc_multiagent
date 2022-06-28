@@ -4,7 +4,6 @@ from network.iqnrnn import IQNRNN
 from network.vdn_net import VDNNet
 from network.dqmix import DQMIX
 from network.dqatten import DQATTEN
-from network.transformer import Transformer
 import torch.nn.functional as f
 
 class DDN:
@@ -113,7 +112,7 @@ class DDN:
         # 得到每个agent对应的Q值，维度为(episode个数, max_episode_len， n_agents，n_actions)
         Z_evals, Z_targets, rnd_qs, rnd_tqs = self.get_Z_values(batch, max_episode_len)
         # Z : (b, t, n, a, nq)
-        # rnd_qs : (b, t, n, nq)
+        # rnd_qs : (b, t,  nq)
         action_for_zs = u.unsqueeze(4).expand(-1,-1,-1,-1,self.nq)
         chosen_action_Zs = torch.gather(Z_evals, dim=3, index = action_for_zs).squeeze(3)
        
@@ -142,7 +141,8 @@ class DDN:
         chosen_action_Z = chosen_action_Z.unsqueeze(4).expand(-1,-1,-1,-1,self.ntq) 
 
         delta = targets - chosen_action_Z
-        tau = rnd_qs.unsqueeze(3).unsqueeze(2).expand(-1,-1,-1,-1,self.ntq)  #(b,t,nq,ntq)
+        tau = rnd_qs.unsqueeze(4).expand(-1,-1,-1,-1,self.ntq) 
+        # b, t, 1, nq, ntq
         abs_weight = torch.abs(tau-delta.le(0.).float())
         y = torch.zeros(delta.shape)
         if self.args.cuda:
@@ -207,8 +207,8 @@ class DDN:
             Z_target, self.target_hidden, rnd_tq = self.target_rnn(inputs_next,self.target_hidden, "target")
             Z_eval = Z_eval.view(b, self.n_agents, self.n_actions, self.nq)
             Z_target = Z_target.view(b, self.n_agents, self.n_actions, self.ntq)
-            rnd_q = rnd_q.view(b, self.nq)
-            rnd_tq = rnd_tq.view(b, self.ntq)
+            rnd_q = rnd_q.view(b, 1, self.nq)
+            rnd_tq = rnd_tq.view(b, 1, self.ntq)
             Z_evals.append(Z_eval)
             Z_targets.append(Z_target)
             rnd_qs.append(rnd_q)
