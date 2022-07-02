@@ -14,7 +14,7 @@ class DQATTEN(nn.Module):
         self.n_actions = args.n_actions
         self.state_dim = int(np.prod(args.state_shape))
         self.action_dim = args.n_agents * self.n_actions
-        
+
         self.atten_w = Qatten_w(args)
         self.si_w = SI_Weight(args)
 
@@ -26,10 +26,12 @@ class DQATTEN(nn.Module):
         q_total = q_vals.sum(dim=2,keepdim=True).unsqueeze(3).expand(-1,-1,-1,nq) # b, t, 1, nq
         Q_atten = self.forward_qatten(q_vals, states, actions,max_q_i,is_v)
         Q_atten = Q_atten.reshape(b, t, 1, 1).expand(-1,-1,-1,nq) # b, t, 1, nq
-
         Z_total = Z_total.reshape(b, t, 1, nq)
         q_total = q_total.reshape(b, t, 1, nq)
-        return Z_total - q_total + Q_atten
+        if is_v:
+            return Z_total - q_total + Q_atten
+        else:
+            return Q_atten
     
     def forward_qatten(self,agent_qs, states, actions = None, max_q_i = None, is_v=False):
         w, b = self.atten_w(agent_qs, states)
