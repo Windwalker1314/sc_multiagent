@@ -54,7 +54,7 @@ class RolloutWorker:
             state = self.env.get_state()
             actions, avail_actions, actions_onehot = [], [], []
             rnd_q = None
-            if self.args.alg=="ddn":
+            if self.args.alg in ["ddn","datten"]:
                 avail_actions = self.env.get_avail_actions()
                 actions = self.agents.choose_actions(obs,last_action, avail_actions, epsilon, evaluate)
                 for agent_id in range(self.n_agents):

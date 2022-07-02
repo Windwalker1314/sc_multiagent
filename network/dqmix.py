@@ -18,7 +18,7 @@ class DQMIX(nn.Module):
 
         self.fc1 = nn.Linear(args.attention_dim, input_shape)
 
-    def forward(self, z_values, states):
+    def forward(self, z_values, states, actions=None, max_q_i=None):
         b, t, n, nq = z_values.shape
         Z_total = z_values.sum(dim=2,keepdim=True) # b, t, 1, nq
 

@@ -96,7 +96,7 @@ class DDN:
         s, s_next, u, r, avail_u, avail_u_next, terminated = batch['s'], batch['s_next'], \
                                                              batch['u'], batch['r'],  batch['avail_u'], \
                                                              batch['avail_u_next'], batch['terminated']
-        obs, obs_next =  batch['o'], batch['o_next']
+        obs, obs_next,u_onehot =  batch['o'], batch['o_next'],batch["u_onehot"]
 
         mask = 1 - batch["padded"].float()  # 用来把那些填充的经验的TD-error置0，从而不让它们影响到学习
         if self.args.cuda:
@@ -105,6 +105,7 @@ class DDN:
             s = s.cuda()
             s_next = s_next.cuda()
             u = u.cuda()
+            u_onehot = u_onehot.cuda()
             r = r.cuda()
             mask = mask.cuda()
             avail_u_next = avail_u_next.cuda()
@@ -113,12 +114,17 @@ class DDN:
         Z_evals, Z_targets, rnd_qs, rnd_tqs = self.get_Z_values(batch, max_episode_len)
         # Z : (b, t, n, a, nq)
         # rnd_qs : (b, t,  nq)
+        # u : (b,t,n,1)
         action_for_zs = u.unsqueeze(4).expand(-1,-1,-1,-1,self.nq)
         chosen_action_Zs = torch.gather(Z_evals, dim=3, index = action_for_zs).squeeze(3)
        
         avail_actions = avail_u.unsqueeze(4).expand(-1,-1,-1,-1, self.nq)
         target_avail_actions = avail_u_next.unsqueeze(4).expand(-1, -1, -1, -1, self.ntq)
         Z_targets[target_avail_actions==0] = -9999999
+
+        Z_eval_clone = Z_evals.clone().detach()
+        Z_eval_clone[avail_actions==0] = -9999999
+        max_action_qvals, max_action_index = Z_eval_clone.mean(dim=4).max(dim=3,keepdim=True)
 
         target_max_actions = Z_targets.mean(dim=4).max(dim=3,keepdim=True)[1]  # (b, t, n, 1) argmax E(Z)
         target_max_actions = target_max_actions.unsqueeze(4).expand(-1,-1,-1,-1, self.ntq) # (b,t,n,1,ntq) 
@@ -132,8 +138,10 @@ class DDN:
             chosen_action_Z = self.eval_vdn_net(chosen_action_Zs, s)  # chosen_action_zs: (b, t, n, nq) -> (b,t,1,nq)
             target_max_Z = self.target_vdn_net(target_max_Zs, s_next)  
         elif self.args.alg == 'datten':
-            chosen_action_Z = self.eval_vdn_net(chosen_action_Zs, s, obs)  # chosen_action_zs: (b, t, n, nq) -> (b,t,1,nq)
-            target_max_Z = self.target_vdn_net(target_max_Zs, s_next, obs_next)
+            ans_chosen = self.eval_vdn_net(chosen_action_Zs, s, is_v=True)
+            ans_adv = self.eval_vdn_net(chosen_action_Zs, s, actions = u_onehot, max_q_i = max_action_qvals, is_v=False)
+            chosen_action_Z = ans_chosen + ans_adv
+            target_max_Z = self.target_vdn_net(target_max_Zs, s_next, is_v = True)
 
         targets = r.unsqueeze(3) + (self.args.gamma * (1-terminated)).unsqueeze(3) * target_max_Z
         # targets (b, t, 1, ntq)
