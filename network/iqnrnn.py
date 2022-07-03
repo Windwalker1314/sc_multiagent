@@ -2,6 +2,7 @@ import torch.nn as nn
 import torch.nn.functional as f
 import torch
 import math
+from network.transformers.opponent import OpponnetModelling
 
 class IQNRNN(nn.Module):
     # Because all the agents share the same network, input_shape=obs_shape+n_actions+n_agents
@@ -17,13 +18,18 @@ class IQNRNN(nn.Module):
         self.input_shape= input_shape
 
         self.fc_obs = nn.Linear(input_shape, self.rhd)
+        if args.opponent_modelling:
+            self.obs_op = OpponnetModelling(input_shape,args)
         self.rnn = nn.GRUCell(self.rhd, self.rhd)
         self.phi = nn.Linear(self.qe, self.rhd)
         self.g = nn.Linear(self.rhd, self.a)
     
     def forward(self, obs, hidden_state, forward_type=None,rnd_q=None):
         obs = obs.reshape(-1, self.input_shape)
-        x = f.relu(self.fc_obs(obs))
+        if self.args.opponent_modelling:
+            x = self.obs_op(obs)
+        else:
+            x = f.relu(self.fc_obs(obs))
         h_in = hidden_state.reshape(-1, self.args.rnn_hidden_dim)
         psi = self.rnn(x, h_in)
         if forward_type == "approx":
