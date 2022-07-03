@@ -70,7 +70,7 @@ def get_ddn_args(args):
     args.n_quantiles = 1
     args.n_target_quantiles = 1
     args.n_approx_quantiles = 32
-    args.attention_dim = 32
+    args.attention_dim = 16
     args.hypernet_emb = 64
     args.mixing_emb_dim = 32
     args.n_head = 4
