@@ -76,18 +76,23 @@ class OpponnetModelling(nn.Module):
         all_querys = [q_nn(m) for q_nn in self.querys_nn]
         all_keys = []
         for km, ke, ka in zip(self.keys_m_nn, self.keys_enemy_nn, self.keys_ally_nn):
-            keys = [km(m)] + [ke(enemies[:,i,:]) for i in range(self.n_enemy)] + [ka(allies[:,i,:]) for i in range(self.n_ally)]
+            key_m = km(m).unsqueeze(1)
+            key_e = ke(enemies)
+            key_a = ka(allies)
+            keys = torch.cat([key_m,key_e,key_a], dim=1)
             all_keys.append(keys)
         all_values = []
         for vm,ve,va in zip(self.vs_m,self.vs_enemy, self.vs_ally):
-            v = [vm(m)] + [ve(enemies[:,i,:]) for i in range(self.n_enemy)] + [va(allies[:,i,:]) for i in range(self.n_ally)]
-            v = torch.stack(v).permute(1,2,0) # b emb n
+            value_m = vm(m).unsqueeze(1)
+            value_e = ve(enemies)
+            value_a = va(allies)
+            v = torch.cat([value_m,value_e, value_a], dim=1)
+            v = v.permute(0,2,1) # b, emb, n
             all_values.append(v)
         # (b, 1, emb) * (b, emb, n)
         all_atten_scores = []
         for q, k, v in zip(all_querys, all_keys, all_values):
-            atten_logit = torch.matmul(q.view(-1,1,self.emb_dim),
-                                       torch.stack(k).permute(1,2,0))
+            atten_logit = torch.matmul(q.view(-1,1,self.emb_dim),k.permute(0,2,1))
             scaled_atten_logit = atten_logit / np.sqrt(self.emb_dim)
 
             atten_w = f.softmax(scaled_atten_logit, dim=2) # b,1,n * b,emb,n

@@ -32,6 +32,8 @@ def get_common_args():
     parser.add_argument('--evaluate', type=bool, default=False, help='whether to evaluate the model')
     parser.add_argument('--cuda', type=bool, default=False, help='whether to use the GPU')
     parser.add_argument('--buffer_size', type=int, default=5000, help='replay buffer size')
+    parser.add_argument('--opponent_modelling', type=bool, default=True, help='replay buffer size')
+    
     args = parser.parse_args()
     return args
 
@@ -74,7 +76,6 @@ def get_ddn_args(args):
     args.hypernet_emb = 64
     args.mixing_emb_dim = 32
     args.n_head = 4
-    args.opponent_modelling = True
     return args
 
 def get_dmix_args(args):
@@ -88,7 +89,6 @@ def get_dmix_args(args):
     args.hypernet_emb = 64
     args.mixing_emb_dim = 32
     args.n_head = 4
-    args.opponent_modelling = True
     return args
 
 # arguments of vnd、 qmix、 qtran
