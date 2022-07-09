@@ -36,7 +36,7 @@ class OpponnetModelling(nn.Module):
         self.w_k = nn.Linear(self.emb_dim, self.emb_dim)
         self.w_v = nn.Linear(self.emb_dim, self.emb_dim)
 
-        self.attn = nn.MultiheadAttention(self.emb_dim, 4)
+        self.attn = nn.MultiheadAttention(self.emb_dim, self.n_head)
         self.final_layer = nn.Linear(self.emb_dim, output_shape)
 
     def forward(self, obs):
