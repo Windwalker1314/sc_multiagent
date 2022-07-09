@@ -4,7 +4,7 @@ import torch.nn.functional as f
 import numpy as np
 
 class OpponnetModelling(nn.Module):
-    def __init__(self,input_shape,args) -> None:
+    def __init__(self,input_shape,output_shape, args) -> None:
         super(OpponnetModelling,self).__init__()
         self.args= args
         # enemy
@@ -23,46 +23,21 @@ class OpponnetModelling(nn.Module):
         
         self.n_head = args.n_head
         self.emb_dim = args.attention_dim
-        
-        self.querys_nn = nn.ModuleList()
-        self.keys_m_nn = nn.ModuleList()
-        self.keys_ally_nn = nn.ModuleList()
-        self.keys_enemy_nn = nn.ModuleList()
-
-        self.vs_m = nn.ModuleList()
-        self.vs_enemy = nn.ModuleList()
-        self.vs_ally =nn.ModuleList()
-
         hypernet_emb = args.hypernet_emb
-        for i in range(self.n_head):
-            query_nn = nn.Sequential(nn.Linear(self.m_f_size, hypernet_emb),
-                                     nn.ReLU(),
-                                     nn.Linear(hypernet_emb, self.emb_dim, bias=False))
-            key_m_nn = nn.Sequential(nn.Linear(self.m_f_size, hypernet_emb),
-                                     nn.ReLU(),
-                                     nn.Linear(hypernet_emb, self.emb_dim, bias=False))
-            key_ally_nn = nn.Linear(self.ally_dim, self.emb_dim, bias=False)
-            key_enemy_nn = nn.Linear(self.enemy_dim, self.emb_dim, bias=False)
+        
+        self.emb_m = nn.Sequential(nn.Linear(self.m_f_size, hypernet_emb),
+                                   nn.ReLU(),
+                                   nn.Linear(hypernet_emb, self.emb_dim))
+        self.emb_e = nn.Linear(self.enemy_dim, self.emb_dim)
+        self.emb_a = nn.Linear(self.ally_dim, self.emb_dim)
+        self.emb_p = nn.Embedding(self.n_agents, self.emb_dim)
 
-            v_m = nn.Sequential(nn.Linear(self.m_f_size, hypernet_emb),
-                                     nn.ReLU(),
-                                     nn.Linear(hypernet_emb, self.emb_dim, bias=False))
-            v_enemy = nn.Linear(self.enemy_dim, self.emb_dim, bias=False)
-            v_ally = nn.Linear(self.ally_dim, self.emb_dim, bias=False)
-            self.querys_nn.append(query_nn)
-            self.keys_m_nn.append(key_m_nn)
-            self.keys_ally_nn.append(key_ally_nn)
-            self.keys_enemy_nn.append(key_enemy_nn)
-            self.vs_m.append(v_m)
-            self.vs_enemy.append(v_enemy)
-            self.vs_ally.append(v_ally)
-        self.b = nn.Sequential(nn.Linear(input_shape, self.emb_dim),
-                               nn.ReLU(),
-                               nn.Linear(self.emb_dim, 1))
-        self.hyper_w_head = nn.Sequential(nn.Linear(input_shape,hypernet_emb),
-                                          nn.ReLU(),
-                                          nn.Linear(hypernet_emb, self.n_head))
-        self.final_layer = nn.Linear(self.emb_dim* self.n_agents, args.rnn_hidden_dim)
+        self.w_q = nn.Linear(self.emb_dim, self.emb_dim)
+        self.w_k = nn.Linear(self.emb_dim, self.emb_dim)
+        self.w_v = nn.Linear(self.emb_dim, self.emb_dim)
+
+        self.attn = nn.MultiheadAttention(self.emb_dim, 4)
+        self.final_layer = nn.Linear(self.emb_dim, output_shape)
 
     def forward(self, obs):
         bs, o = obs.shape
@@ -73,40 +48,20 @@ class OpponnetModelling(nn.Module):
         enemies = obs[:, self.enemy_f_start:self.ally_f_start].view(bs, self.n_enemy, self.enemy_dim)
         allies = obs[:, self.ally_f_start:self.other_f_start].view(bs, self.n_ally, self.ally_dim )
 
-        all_querys = [q_nn(m) for q_nn in self.querys_nn]
-        all_keys = []
-        for km, ke, ka in zip(self.keys_m_nn, self.keys_enemy_nn, self.keys_ally_nn):
-            key_m = km(m).unsqueeze(1)
-            key_e = ke(enemies)
-            key_a = ka(allies)
-            keys = torch.cat([key_m,key_e,key_a], dim=1)
-            all_keys.append(keys)
-        all_values = []
-        for vm,ve,va in zip(self.vs_m,self.vs_enemy, self.vs_ally):
-            value_m = vm(m).unsqueeze(1)
-            value_e = ve(enemies)
-            value_a = va(allies)
-            v = torch.cat([value_m,value_e, value_a], dim=1)
-            v = v.permute(0,2,1) # b, emb, n
-            all_values.append(v)
-        # (b, 1, emb) * (b, emb, n)
-        all_atten_scores = []
-        for q, k, v in zip(all_querys, all_keys, all_values):
-            atten_logit = torch.matmul(q.view(-1,1,self.emb_dim),k.permute(0,2,1))
-            scaled_atten_logit = atten_logit / np.sqrt(self.emb_dim)
+        positions = torch.LongTensor([0]+[1]*self.n_ally+[2]*self.n_enemy).repeat(bs,1)
+        if self.args.cuda:
+            positions = positions.cuda()
+        enemy_embs = f.relu(self.emb_e(enemies))
+        ally_embs = f.relu(self.emb_a(allies))
+        m_embs = f.relu(self.emb_m(m)).unsqueeze(1)
+        p_emb = f.relu(self.emb_p(positions))
+        x = torch.cat([m_embs,ally_embs,enemy_embs], dim=1) + p_emb
 
-            atten_w = f.softmax(scaled_atten_logit, dim=2) # b,1,n * b,emb,n
-            atten_v = atten_w.expand(-1,self.emb_dim, -1) * v
+        q = self.w_q(x)
+        k = self.w_k(x)
+        v = self.w_v(x)
 
-            all_atten_scores.append(atten_v)
-        all_atten_scores = torch.stack(all_atten_scores, dim=1) # b h emb n
-        all_atten_scores = all_atten_scores.view(-1, self.n_head, self.emb_dim*self.n_agents)
-
-        b = self.b(obs).view(-1, 1)
-        w_head = torch.abs(self.hyper_w_head(obs))
-        w_head = w_head.view(-1, self.n_head, 1).repeat(1,1,self.emb_dim*self.n_agents)
-
-        all_atten_scores *= w_head
-        all_atten_scores = torch.sum(all_atten_scores, dim=1) + b
+        o, w = self.attn(q,k,v)
+        all_atten_scores = o[:,0,:]
 
         return self.final_layer(all_atten_scores)

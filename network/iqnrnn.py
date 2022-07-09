@@ -17,9 +17,12 @@ class IQNRNN(nn.Module):
         self.a = args.n_actions             # number of actions
         self.input_shape= input_shape
 
-        self.fc_obs = nn.Linear(input_shape, self.rhd)
+       
         if args.opponent_modelling:
-            self.obs_op = OpponnetModelling(input_shape,args)
+            self.obs_op = OpponnetModelling(input_shape, self.rhd//2, args)
+            self.fc_obs = nn.Linear(input_shape, self.rhd//2)
+        else:
+            self.fc_obs = nn.Linear(input_shape, self.rhd)
         self.rnn = nn.GRUCell(self.rhd, self.rhd)
         self.phi = nn.Linear(self.qe, self.rhd)
         self.g = nn.Linear(self.rhd, self.a)
@@ -27,7 +30,9 @@ class IQNRNN(nn.Module):
     def forward(self, obs, hidden_state, forward_type=None,rnd_q=None):
         obs = obs.reshape(-1, self.input_shape)
         if self.args.opponent_modelling:
-            x = self.obs_op(obs)
+            op_emb = self.obs_op(obs)
+            obs_emb = f.relu(self.fc_obs(obs))
+            x = f.relu(torch.cat([op_emb,obs_emb], dim=1))
         else:
             x = f.relu(self.fc_obs(obs))
         h_in = hidden_state.reshape(-1, self.args.rnn_hidden_dim)
