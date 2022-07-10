@@ -31,7 +31,7 @@ class IQNRNN(nn.Module):
         obs = obs.reshape(-1, self.input_shape)
         if self.args.opponent_modelling:
             op_emb = self.obs_op(obs)
-            obs_emb = f.relu(self.fc_obs(obs))
+            obs_emb = self.fc_obs(obs)
             x = f.relu(torch.cat([op_emb,obs_emb], dim=1))
         else:
             x = f.relu(self.fc_obs(obs))
