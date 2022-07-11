@@ -37,7 +37,7 @@ class Agents:
         elif args.alg == 'reinforce':
             from policy.reinforce import Reinforce
             self.policy = Reinforce(args)
-        elif args.alg in ["ddn", "dmix","datten"]:
+        elif args.alg in ["ddn", "dmix","dplex","dtrans"]:
             from policy.ddn import DDN
             self.policy = DDN(args)
         else:
@@ -70,7 +70,7 @@ class Agents:
             if self.args.cuda:
                 maven_z = maven_z.cuda()
             q_value, self.policy.eval_hidden[:, agent_num, :] = self.policy.eval_rnn(inputs, hidden_state, maven_z)
-        elif self.args.alg in ['ddn', "dmix",'datten']:
+        elif self.args.alg in ['ddn', "dmix",'dplex',"dtrans"]:
             Z_val, self.policy.eval_hidden[:, agent_num, :], rnd_q = self.policy.eval_rnn(inputs,hidden_state,forward_type="approx",rnd_q = rnd_q)
             q_value = Z_val.mean(dim=2)
         else:
@@ -105,7 +105,7 @@ class Agents:
         if self.args.cuda:
             inputs = inputs.cuda()
             hidden_state = hidden_state.cuda()
-        if self.args.alg in ['ddn', "dmix",'datten']:
+        if self.args.alg in ['ddn', "dmix","dplex","dtrans"]:
             Z_val, self.policy.eval_hidden, rnd_q = self.policy.eval_rnn(inputs,hidden_state,forward_type="approx")
             q_value = Z_val.mean(dim=2) # b*n, a
         q_value=q_value.reshape(-1, self.n_agents, self.n_actions)

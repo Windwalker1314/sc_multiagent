@@ -1,9 +1,11 @@
 import torch
 import os
+from network.dtrans import DTRANS
 from network.iqnrnn import IQNRNN
 from network.vdn_net import VDNNet
 from network.dqmix import DQMIX
-from network.dqatten import DQATTEN
+from network.dplex import DPLEX
+from network.dtrans import DTRANS
 import torch.nn.functional as f
 
 class DDN:
@@ -34,9 +36,12 @@ class DDN:
         elif args.alg == 'dmix':
             self.eval_vdn_net = DQMIX(self.nq, args)
             self.target_vdn_net = DQMIX(self.ntq, args)
-        elif args.alg == 'datten':
-            self.eval_vdn_net = DQATTEN(self.nq, args)
-            self.target_vdn_net = DQATTEN(self.ntq, args)
+        elif args.alg == 'dplex':
+            self.eval_vdn_net = DPLEX(self.nq, args)
+            self.target_vdn_net = DPLEX(self.ntq, args)
+        elif args.alg == 'dtrans':
+            self.eval_vdn_net = DTRANS(self.obs_shape, args)
+            self.target_vdn_net = DTRANS(self.obs_shape, args)
         else:
             raise Exception("No such algorithm")
         
@@ -100,7 +105,7 @@ class DDN:
             if self.args.cuda:
                 s = s.cuda()
                 s_next = s_next.cuda()
-        elif self.args.alg == 'datten':
+        elif self.args.alg in ["dplex","dtrans"]:
             s, s_next = batch['s'], batch['s_next']
             obs, obs_next,u_onehot =  batch['o'], batch['o_next'],batch["u_onehot"]
             if self.args.cuda:
@@ -108,7 +113,7 @@ class DDN:
                 s_next = s_next.cuda()
                 u_onehot = u_onehot.cuda()
                 obs = obs.cuda()
-            obs_next = obs_next.cuda()
+                obs_next = obs_next.cuda()
         mask = 1 - batch["padded"].float()  # 用来把那些填充的经验的TD-error置0，从而不让它们影响到学习
         if self.args.cuda:
             u = u.cuda()
@@ -127,7 +132,7 @@ class DDN:
         target_avail_actions = avail_u_next.unsqueeze(4).expand(-1, -1, -1, -1, self.ntq)
         Z_targets[target_avail_actions==0] = -9999999
 
-        if self.args.alg == 'datten':
+        if self.args.alg == 'dplex':
             Z_eval_clone = Z_evals.clone().detach()
             avail_actions = avail_u.unsqueeze(4).expand(-1,-1,-1,-1, self.nq)
             Z_eval_clone[avail_actions==0] = -9999999
@@ -145,11 +150,16 @@ class DDN:
         elif self.args.alg == 'dmix':
             chosen_action_Z = self.eval_vdn_net(chosen_action_Zs, s)  # chosen_action_zs: (b, t, n, nq) -> (b,t,1,nq)
             target_max_Z = self.target_vdn_net(target_max_Zs, s_next)  
-        elif self.args.alg == 'datten':
+        elif self.args.alg == 'dplex':
             ans_chosen = self.eval_vdn_net(chosen_action_Zs, s, is_v=True)
             ans_adv = self.eval_vdn_net(chosen_action_Zs, s, actions = u_onehot, max_q_i = max_action_qvals, is_v=False)
             chosen_action_Z = ans_chosen + ans_adv
             target_max_Z = self.target_vdn_net(target_max_Zs, s_next, is_v = True)
+        elif self.args.alg == 'dtrans':
+            chosen_action_Z = self.eval_vdn_net(chosen_action_Zs, s, obs)  # chosen_action_zs: (b, t, n, nq) -> (b,t,1,nq)
+            target_max_Z = self.target_vdn_net(target_max_Zs, s_next, obs_next) 
+        else:
+            raise Exception("No such algorithm")
 
         targets = r.unsqueeze(3) + (self.args.gamma * (1-terminated)).unsqueeze(3) * target_max_Z
         # targets (b, t, 1, ntq)
@@ -165,7 +175,7 @@ class DDN:
             y = y.cuda()
         loss = f.smooth_l1_loss(delta, y, reduction="none") # (b,t,1,nq,ntq)
         loss = (abs_weight * loss).mean(dim=4).sum(dim=3)
-        assert(loss.shape==mask.shape)
+        assert(loss.shape==mask.shape, str(loss.shape)+str(mask.shape))
         loss = loss*mask
         loss = loss.sum() / mask.sum()
         self.optimizer.zero_grad()

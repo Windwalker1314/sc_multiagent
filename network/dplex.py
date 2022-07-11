@@ -1,13 +1,12 @@
 import numpy as np
 import torch.nn as nn
 import torch
-import torch.nn.functional as f
 from network.transformers.qatten_w import Qatten_w
 from network.transformers.si_w import SI_Weight
 
-class DQATTEN(nn.Module):
+class DPLEX(nn.Module):
     def __init__(self, input_shape,args):
-        super(DQATTEN, self).__init__()
+        super(DPLEX, self).__init__()
         self.args = args
         self.input_shape = input_shape
         self.n_agents = args.n_agents

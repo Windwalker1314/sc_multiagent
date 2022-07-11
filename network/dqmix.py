@@ -16,7 +16,6 @@ class DQMIX(nn.Module):
                                      nn.ReLU(),
                                      nn.Linear(args.qmix_hidden_dim, 1))
 
-        self.fc1 = nn.Linear(args.attention_dim, input_shape)
 
     def forward(self, z_values, states, actions=None, max_q_i=None):
         b, t, n, nq = z_values.shape
