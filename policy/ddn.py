@@ -131,6 +131,8 @@ class DDN:
        
         target_avail_actions = avail_u_next.unsqueeze(4).expand(-1, -1, -1, -1, self.ntq)
         Z_targets[target_avail_actions==0] = -9999999
+        del avail_u_next
+        del u
 
         if self.args.alg == 'dplex':
             Z_eval_clone = Z_evals.clone().detach()
@@ -157,16 +159,25 @@ class DDN:
             target_max_Z = self.target_vdn_net(target_max_Zs, s_next, is_v = True)
         elif self.args.alg == 'dtrans':
             chosen_action_Z = self.eval_vdn_net(chosen_action_Zs, s, obs)  # chosen_action_zs: (b, t, n, nq) -> (b,t,1,nq)
-            target_max_Z = self.target_vdn_net(target_max_Zs, s_next, obs_next) 
+            target_max_Z = self.target_vdn_net(target_max_Zs, s_next, obs_next)
+            del s
+            del s_next
+            del obs
+            del obs_next
         else:
             raise Exception("No such algorithm")
 
         targets = r.unsqueeze(3) + (self.args.gamma * (1-terminated)).unsqueeze(3) * target_max_Z
+        del r
+        del terminated
+        del target_max_Z
         # targets (b, t, 1, ntq)
         targets = targets.unsqueeze(3).expand(-1,-1,-1,self.nq,-1) # (b,t,1,nq,ntq)
         chosen_action_Z = chosen_action_Z.unsqueeze(4).expand(-1,-1,-1,-1,self.ntq) 
 
         delta = targets - chosen_action_Z
+        del targets
+        del chosen_action_Z
         tau = rnd_qs.unsqueeze(4).expand(-1,-1,-1,-1,self.ntq) 
         # b, t, 1, nq, ntq
         abs_weight = torch.abs(tau-delta.le(0.).float())
@@ -175,7 +186,9 @@ class DDN:
             y = y.cuda()
         loss = f.smooth_l1_loss(delta, y, reduction="none") # (b,t,1,nq,ntq)
         loss = (abs_weight * loss).mean(dim=4).sum(dim=3)
-        assert(loss.shape==mask.shape, str(loss.shape)+str(mask.shape))
+        del tau
+        del abs_weight
+        assert(loss.shape==mask.shape)
         loss = loss*mask
         loss = loss.sum() / mask.sum()
         self.optimizer.zero_grad()
