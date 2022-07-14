@@ -73,7 +73,7 @@ class DDN:
         if args.optimizer == "RMS":
             self.optimizer = torch.optim.RMSprop(self.eval_parameters, lr=args.lr)
         elif args.optimizer == "Adam":
-            self.optimizer = torch.optim.Adam(self.eval_parameters, lr = args.lr)
+            self.optimizer = torch.optim.Adam(self.eval_parameters, lr = args.lr,eps=0.00001)
 
 
 
