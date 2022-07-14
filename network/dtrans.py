@@ -27,8 +27,7 @@ class DTRANS(nn.Module):
         Z_mean = self.obs_w(q_vals, states, obs).reshape(b,t,1,1)
         Z_mean = Z_mean.expand(-1,-1,-1,nq) # b, t, 1, nq
         assert(Z_mean.shape==(b,t,1,nq))
+        assert(Z_shape.shape==(b,t,1,nq))
 
-        Z_mean = Z_mean.reshape(b, t, 1, nq)
-        Z_shape = Z_shape.reshape(b, t, 1, nq)
         return Z_mean + Z_shape
 
