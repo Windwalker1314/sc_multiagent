@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 def plt_win_rate_mean():
     path = []
-    alg_num = 2
+    alg_num = 3
     episode_rewards = [[] for _ in range(alg_num)]
     game_map = '6h_vs_8z'
     """path.append('../result/vdn/' + game_map)
@@ -13,25 +13,26 @@ def plt_win_rate_mean():
     path.append('../result/qtran_alt/' + game_map)
     path.append('../result/coma/' + game_map)
     path.append('../result/central_v+commnet/' + game_map)
-    path.append('../result/central_v+g2anet/' + game_map)
-    path.append('../result/maven/' + game_map)"""
+    path.append('../result/central_v+g2anet/' + game_map)"""
     path.append('../result/ddn/'+game_map)
     path.append('../result/ddn+om/'+game_map)
+    path.append('../result/dtrans/' + game_map)
     num_run = 8
     for i in range(alg_num):
         for j in range(num_run):
             try:
                 r = np.load(path[i] + '/episode_rewards_{}.npy'.format(j))
-                episode_rewards[i].append(r[:100])
+                episode_rewards[i].append(r[:80])
             except:
                 continue
     print(np.array(episode_rewards).shape)
     episode_rewards = np.array(episode_rewards).mean(axis=1)
 
     plt.figure()
-    plt.ylim(10, 16)
+    plt.ylim(10, 17)
     plt.plot(range(len(episode_rewards[0])), episode_rewards[0], c='b', label='ddn')
     plt.plot(range(len(episode_rewards[1])), episode_rewards[1], c='r', label='ddn+om')
+    plt.plot(range(len(episode_rewards[2])), episode_rewards[2], c='g', label='dtrans')
     """plt.plot(range(len(win_rates[0])), win_rates[0], c='b', label='vdn')
     plt.plot(range(len(win_rates[1])), win_rates[1], c='r', label='qmix')
     plt.plot(range(len(win_rates[2])), win_rates[2], c='g', label='qtran_base')
