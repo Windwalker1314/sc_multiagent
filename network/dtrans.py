@@ -1,5 +1,6 @@
 import torch.nn as nn
 from network.transformers.obs_w import OBS_W
+import torch
 
 class DTRANS(nn.Module):
     def __init__(self, input_shape,args) -> None:
@@ -15,15 +16,8 @@ class DTRANS(nn.Module):
         assert(n==self.n_agents)
         assert(states.shape == (b,t,self.args.state_shape))
 
-        q_vals = z_values.mean(dim=3) # b, t, n
-        Q_total = q_vals.sum(dim=2,keepdim=True).unsqueeze(3).expand(-1,-1,-1,nq) # b, t, 1, nq
-        Z_total = z_values.sum(dim=2,keepdim=True) # b, t, 1, nq
-        Z_shape = Z_total-Q_total
+        w = self.obs_w(states,obs).reshape(b,t,n,1).expand(-1,-1,-1,nq) #b,t,n,nq
+        z_values = z_values*w
 
-        Z_mean = self.obs_w(q_vals, states, obs).reshape(b,t,1,1)
-        Z_mean = Z_mean.expand(-1,-1,-1,nq) # b, t, 1, nq
-        assert(Z_mean.shape==(b,t,1,nq))
-        assert(Z_shape.shape==(b,t,1,nq))
-
-        return Z_mean + Z_shape
+        return torch.sum(z_values, dim=2, keepdim=True)
 

@@ -24,6 +24,7 @@ def get_common_args():
     parser.add_argument('--reuse_network', type=bool, default=True, help='whether to use one network for all agents')
     parser.add_argument('--gamma', type=float, default=0.99, help='discount factor')
     parser.add_argument('--optimizer', type=str, default="Adam", help='optimizer')
+    parser.add_argument('--eps', type=float, default=0.00001, help='optimizer')
     parser.add_argument('--evaluate_cycle', type=int, default=40000, help='how often to evaluate the model')
     parser.add_argument('--evaluate_epoch', type=int, default=32, help='number of the epoch to evaluate the agent')
     parser.add_argument('--model_dir', type=str, default='./model', help='model directory of the policy')
@@ -85,10 +86,9 @@ def get_dmix_args(args):
     args.n_target_quantiles = 8
     args.n_approx_quantiles = 32
     args.attention_dim = 32
-    args.atten_reg_coef = 0.001
     args.hypernet_emb = 64
     args.mixing_emb_dim = 32
-    args.n_head = 2
+    args.n_head = 1
     return args
 
 # arguments of vnd、 qmix、 qtran

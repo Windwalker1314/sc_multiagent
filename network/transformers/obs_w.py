@@ -31,12 +31,11 @@ class OBS_W(nn.Module):
                                     nn.ReLU(),
                                     nn.Linear(hypernet_emb, 1))
 
-    def forward(self, q_values, states, obs):
+    def forward(self, states, obs):
         b,t,n,o = obs.shape
         bs = b*t
         obs = obs.reshape(bs, n, o)
         obs = obs.permute(1, 0, 2)  # n, bs, o
-        q_values = q_values.reshape(bs, n)
         states = states.reshape(-1, self.state_dim) #bs, s
 
         all_head_querys = [q(states) for q in self.query_embs]
@@ -62,8 +61,4 @@ class OBS_W(nn.Module):
         #all_head_w *= w_head
         obs_w = torch.sum(all_head_w, dim = 1) # bs, n
 
-        out = q_values*obs_w
-        assert(obs_w.shape==(bs, n))
-        assert(out.shape==(bs, n))
-        out = torch.sum(out,dim=1)
-        return out
+        return obs_w
