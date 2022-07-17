@@ -55,14 +55,14 @@ class OBS_W(nn.Module):
         all_head_w = torch.stack(all_head_w, dim=1) 
         all_head_w = all_head_w.view(-1, self.n_head, self.n_agents) #  bs, h, n
 
-        w_head = torch.abs(self.w_head(states))
-        w_head = w_head.view(-1, self.n_head, 1).repeat(1, 1, self.n_agents)
-        b_head = self.b_head(states).view(-1, 1).repeat(1, self.n_agents)
+        #w_head = torch.abs(self.w_head(states))
+        #w_head = w_head.view(-1, self.n_head, 1).repeat(1, 1, self.n_agents)
+        #b_head = self.b_head(states).view(-1, 1).repeat(1, self.n_agents)
 
-        all_head_w *= w_head
+        #all_head_w *= w_head
         obs_w = torch.sum(all_head_w, dim = 1) # bs, n
 
-        out = q_values*obs_w + b_head
+        out = q_values*obs_w
         assert(obs_w.shape==(bs, n))
         assert(out.shape==(bs, n))
         out = torch.sum(out,dim=1)

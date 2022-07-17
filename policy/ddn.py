@@ -156,8 +156,8 @@ class DDN:
             chosen_action_Z = ans_chosen + ans_adv
             target_max_Z = self.target_vdn_net(target_max_Zs, s_next, is_v = True)
         elif self.args.alg == 'dtrans':
-            chosen_action_Z = self.eval_vdn_net(chosen_action_Zs, s, obs, rnd_qs)  # chosen_action_zs: (b, t, n, nq) -> (b,t,1,nq)
-            target_max_Z = self.target_vdn_net(target_max_Zs, s_next, obs_next, rnd_tqs)
+            chosen_action_Z = self.eval_vdn_net(chosen_action_Zs, s, obs)  # chosen_action_zs: (b, t, n, nq) -> (b,t,1,nq)
+            target_max_Z = self.target_vdn_net(target_max_Zs, s_next, obs_next)
             del s
             del s_next
             del obs

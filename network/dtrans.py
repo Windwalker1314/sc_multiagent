@@ -1,7 +1,4 @@
-import numpy as np
 import torch.nn as nn
-import torch
-import math
 from network.transformers.obs_w import OBS_W
 
 class DTRANS(nn.Module):
@@ -12,12 +9,11 @@ class DTRANS(nn.Module):
         self.n_agents = args.n_agents
         self.obs_w = OBS_W(input_shape, args)
     
-    def forward(self, z_values, states, obs, rnd_q):
+    def forward(self, z_values, states, obs):
         b, t, n, nq = z_values.shape
         assert(obs.shape == (b,t,n,self.input_shape))
         assert(n==self.n_agents)
         assert(states.shape == (b,t,self.args.state_shape))
-        assert(rnd_q.shape == (b, t, 1, nq))
 
         q_vals = z_values.mean(dim=3) # b, t, n
         Q_total = q_vals.sum(dim=2,keepdim=True).unsqueeze(3).expand(-1,-1,-1,nq) # b, t, 1, nq

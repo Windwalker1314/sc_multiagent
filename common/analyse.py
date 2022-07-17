@@ -22,14 +22,14 @@ def plt_win_rate_mean():
         for j in range(num_run):
             try:
                 r = np.load(path[i] + '/episode_rewards_{}.npy'.format(j))
-                episode_rewards[i].append(r[:80])
+                episode_rewards[i].append(r[:60]) #2*60
             except:
                 continue
-    print(np.array(episode_rewards).shape)
-    episode_rewards = np.array(episode_rewards).mean(axis=1)
+        episode_rewards[i] = np.array(episode_rewards[i]).mean(axis=0)
+    episode_rewards = np.array(episode_rewards)
 
     plt.figure()
-    plt.ylim(10, 17)
+    plt.ylim(6, 16)
     plt.plot(range(len(episode_rewards[0])), episode_rewards[0], c='b', label='ddn')
     plt.plot(range(len(episode_rewards[1])), episode_rewards[1], c='r', label='ddn+om')
     plt.plot(range(len(episode_rewards[2])), episode_rewards[2], c='g', label='dtrans')
@@ -43,7 +43,7 @@ def plt_win_rate_mean():
     plt.plot(range(len(win_rates[6])), win_rates[6], c='m', label='central_v+g2anet')"""
 
     plt.legend()
-    plt.xlabel('episodes * 100')
+    plt.xlabel('Epoch')
     plt.ylabel('Episode_rewards')
     plt.savefig('../result/overview_{}.png'.format(game_map))
     plt.show()
