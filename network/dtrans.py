@@ -32,8 +32,8 @@ class DTRANS(nn.Module):
 
         w_mean = self.obs_w(states, obs).reshape(b,t,n)
         b_mean = self.b_mean(states).view(b,t,1).repeat(1, 1, self.n_agents)
-        Z_mean = w_mean*q_vals + b_mean
-        Z_mean = Z_mean.unsqueeze(2).expand(-1,-1,-1,nq) # b, t, 1, nq
+        Z_mean = w_mean*q_vals + b_mean # b,t,n
+        Z_mean = Z_mean.sum(dim=2,keepdim=True).unsqueeze(3).expand(-1,-1,-1,nq) # b, t, 1, nq
         assert(Z_mean.shape==(b,t,1,nq))
         assert(Z_shape.shape==(b,t,1,nq))
 
