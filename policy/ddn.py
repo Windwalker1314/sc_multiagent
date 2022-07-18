@@ -40,8 +40,8 @@ class DDN:
             self.eval_vdn_net = DPLEX(self.nq, args)
             self.target_vdn_net = DPLEX(self.ntq, args)
         elif args.alg == 'dtrans':
-            self.eval_vdn_net = DTRANS(self.obs_shape, args)
-            self.target_vdn_net = DTRANS(self.obs_shape, args)
+            self.eval_vdn_net = DTRANS(self.nq, args)
+            self.target_vdn_net = DTRANS(self.ntq, args)
         else:
             raise Exception("No such algorithm")
         
