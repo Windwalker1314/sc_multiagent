@@ -11,7 +11,7 @@ class DTRANS(nn.Module):
         self.n_agents = args.n_agents
         hypernet_emb = args.hypernet_emb
         self.state_dim = int(np.prod(args.state_shape))
-        self.obs_w = OBS_W(input_shape, args)
+        self.obs_w = OBS_W(args)
         self.b_mean = nn.Sequential(nn.Linear(self.state_dim, hypernet_emb),
                                     nn.ReLU(),
                                     nn.Linear(hypernet_emb, 1))
