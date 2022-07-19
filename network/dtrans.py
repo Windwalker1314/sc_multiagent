@@ -35,7 +35,7 @@ class DTRANS(nn.Module):
         assert(states.shape == (b,t,self.args.state_shape))
 
         q_vals = z_values.mean(dim=3) # b, t, n
-        w_shape = self.w_shape(states).reshape(b,t,n,1).expand(-1,-1,-1,nq)
+        w_shape = torch.abs(self.w_shape(states)).reshape(b,t,n,1).expand(-1,-1,-1,nq)
         z_values *= w_shape
 
         Q_total = q_vals.sum(dim=2,keepdim=True).unsqueeze(3).expand(-1,-1,-1,nq) # b, t, 1, nq
