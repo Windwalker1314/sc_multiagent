@@ -36,11 +36,9 @@ class DTRANS(nn.Module):
 
         q_vals = z_values.mean(dim=3) # b, t, n
         w_shape = torch.abs(self.w_shape(states)).reshape(b,t,n,1).expand(-1,-1,-1,nq)
-        z_values *= w_shape
-
-        Q_total = q_vals.sum(dim=2,keepdim=True).unsqueeze(3).expand(-1,-1,-1,nq) # b, t, 1, nq
-        Z_total = z_values.sum(dim=2,keepdim=True) # b, t, 1, nq
-        Z_shape = Z_total-Q_total
+        z_shape = z_values-q_vals.view(b,t,n,1).expand(-1,-1,-1,nq) # b, t, n, nq
+        z_shape*=w_shape
+        Z_shape = z_shape.sum(dim=2,keepdim=True)
 
         tau = rnd_q.view(b*t*nq, 1).expand(-1, self.qe)  # b*t*nq, qe
         i = torch.arange(0,self.qe).view(1,-1).expand(b*t*nq, self.qe)
@@ -51,7 +49,6 @@ class DTRANS(nn.Module):
         psi = self.psi(states)
         psi = psi.reshape(b,t,1,self.hypernet_emb).expand(b,t,nq,self.hypernet_emb).reshape(b*t*nq,self.hypernet_emb)
         # psi: b*t*nq, emb
-
         Z_state = self.g(psi * phi).reshape(b, t, 1, nq)
         Z_state = Z_state - Z_state.mean(dim=3,keepdim=True).expand(-1,-1,-1,nq)
         Z_shape += Z_state
