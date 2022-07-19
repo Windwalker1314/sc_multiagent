@@ -48,7 +48,7 @@ class DTRANS(nn.Module):
             i = i.cuda()
         phi = f.relu(self.phi(torch.cos(math.pi * i * tau))) # b*t*nq, emb
         assert phi.shape == (b*t*nq, self.hypernet_emb)
-        psi = self.phi(states)
+        psi = self.psi(states)
         psi = psi.reshape(b,t,1,self.hypernet_emb).expand(b,t,nq,self.hypernet_emb).reshape(b*t*nq,self.hypernet_emb)
         # psi: b*t*nq, emb
 
