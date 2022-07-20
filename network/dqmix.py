@@ -43,7 +43,7 @@ class DQMIX(nn.Module):
         states = states.reshape(-1, s)  # bt, s
         w1 = torch.abs(self.state_w1(states))
         b1 = self.state_b1(states)
-        w1 = w1.view(-1, n, self.args.qmix_hidden_dim)
+        w1 = w1.view(-1, n, self.args.qmix_hidden_dim) #bt, 1, n, bt, n, e
         b1 = b1.view(-1, 1, self.args.qmix_hidden_dim)
 
         x = f.elu(torch.bmm(q_values, w1) +b1)
