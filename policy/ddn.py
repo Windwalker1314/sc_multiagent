@@ -7,6 +7,7 @@ from network.dqmix import DQMIX
 from network.dplex import DPLEX
 from network.dtrans import DTRANS
 import torch.nn.functional as f
+from torch.optim.lr_scheduler import StepLR
 
 class DDN:
     def __init__(self, args):
@@ -71,9 +72,11 @@ class DDN:
 
         self.eval_parameters = list(self.eval_vdn_net.parameters()) + list(self.eval_rnn.parameters())
         if args.optimizer == "RMS":
-            self.optimizer = torch.optim.RMSprop(self.eval_parameters, lr=args.lr)
+            self.optimizer = torch.optim.RMSprop(self.eval_parameters, lr=args.lr,eps=args.eps)
+            self.scheduler = StepLR(self.optimizer, step_size=100000, gamma=0.9)
         elif args.optimizer == "Adam":
-            self.optimizer = torch.optim.Adam(self.eval_parameters, lr = args.lr,eps=0.00001)
+            self.optimizer = torch.optim.Adam(self.eval_parameters, lr = args.lr,eps=args.eps)
+            self.scheduler = StepLR(self.optimizer, step_size=100000, gamma=0.9)
 
 
 
@@ -190,6 +193,7 @@ class DDN:
         loss.backward()
         torch.nn.utils.clip_grad_norm_(self.eval_parameters, self.args.grad_norm_clip)
         self.optimizer.step()
+        self.scheduler.step()
         # Max over target Z-values
 
         # Garbage Collection
