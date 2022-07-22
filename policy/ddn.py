@@ -128,18 +128,19 @@ class DDN:
             terminated = terminated.cuda()
         # 得到每个agent对应的Q值，维度为(episode个数, max_episode_len， n_agents，n_actions)
         Z_evals, Z_targets, rnd_qs, rnd_tqs = self.get_Z_values(batch, max_episode_len)
-        # Z : (b, t, n, a, nq)
+        # Z_evals : (b, t+1, n, a, nq)
+        # Z_targets : (b, t, n, a, ntq)
         # rnd_qs : (b, t, 1, nq)
         # u : (b,t,n,1)
         action_for_zs = u.unsqueeze(4).expand(-1,-1,-1,-1,self.nq)
-        chosen_action_Zs = torch.gather(Z_evals, dim=3, index = action_for_zs).squeeze(3)
+        chosen_action_Zs = torch.gather(Z_evals[:,:-1], dim=3, index = action_for_zs).squeeze(3)
        
         target_avail_actions = avail_u_next.unsqueeze(4).expand(-1, -1, -1, -1, self.ntq)
         Z_targets[target_avail_actions==0] = -9999999
         
         if self.args.double_q or self.args.alg == 'dplex':
-            Z_eval_clone = Z_evals.clone().detach()
-            avail_actions = avail_u.unsqueeze(4).expand(-1,-1,-1,-1, self.nq)
+            Z_eval_clone = Z_evals[:,1:].clone().detach()
+            avail_actions = avail_u_next.unsqueeze(4).expand(-1,-1,-1,-1, self.nq)
             Z_eval_clone[avail_actions==0] = -9999999
             max_action_qvals, target_max_actions = Z_eval_clone.mean(dim=4).max(dim=3,keepdim=True)
             target_max_actions = target_max_actions.unsqueeze(4).expand(-1,-1,-1,-1,self.ntq)
@@ -270,12 +271,17 @@ class DDN:
             Z_targets.append(Z_target)
             rnd_qs.append(rnd_q)
             rnd_tqs.append(rnd_tq)
+            # for double q learning
+            if i == max_episode_len-1:
+                Z_eval, self.eval_hidden, rnd_q = self.eval_rnn(inputs_next, self.eval_hidden, "policy")
+                Z_eval = Z_eval.view(b, self.n_agents, self.n_actions, self.nq)
+                Z_evals.append(Z_eval)
         Z_evals = torch.stack(Z_evals, dim=1)
         Z_targets = torch.stack(Z_targets, dim=1)
         rnd_qs = torch.stack(rnd_qs, dim=1)
         rnd_tqs = torch.stack(rnd_tqs, dim=1)
         return Z_evals, Z_targets, rnd_qs, rnd_tqs
-
+    
     def init_hidden(self, episode_num):
         # 为每个episode中的每个agent都初始化一个eval_hidden、target_hidden
         self.eval_hidden = torch.zeros((episode_num, self.n_agents, self.args.rnn_hidden_dim))
