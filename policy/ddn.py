@@ -72,11 +72,13 @@ class DDN:
 
         self.eval_parameters = list(self.eval_vdn_net.parameters()) + list(self.eval_rnn.parameters())
         if args.optimizer == "RMS":
-            self.optimizer = torch.optim.RMSprop(self.eval_parameters, lr=args.lr,eps=args.eps)
-            self.scheduler = StepLR(self.optimizer, step_size=100000, gamma=0.9)
+            self.optimizer = torch.optim.RMSprop(self.eval_parameters, lr=args.lr,eps=args.eps,alpha=args.optim_alpha)
+            if args.scheduler:
+                self.scheduler = StepLR(self.optimizer, step_size=100000, gamma=0.9)
         elif args.optimizer == "Adam":
             self.optimizer = torch.optim.Adam(self.eval_parameters, lr = args.lr,eps=args.eps)
-            self.scheduler = StepLR(self.optimizer, step_size=100000, gamma=0.9)
+            if args.scheduler:
+                self.scheduler = StepLR(self.optimizer, step_size=100000, gamma=0.9)
 
 
 
@@ -135,16 +137,17 @@ class DDN:
         target_avail_actions = avail_u_next.unsqueeze(4).expand(-1, -1, -1, -1, self.ntq)
         Z_targets[target_avail_actions==0] = -9999999
         
-
-        if self.args.alg == 'dplex':
+        if self.args.double_q or self.args.alg == 'dplex':
             Z_eval_clone = Z_evals.clone().detach()
             avail_actions = avail_u.unsqueeze(4).expand(-1,-1,-1,-1, self.nq)
             Z_eval_clone[avail_actions==0] = -9999999
-            max_action_qvals, max_action_index = Z_eval_clone.mean(dim=4).max(dim=3,keepdim=True)
-
-        target_max_actions = Z_targets.mean(dim=4).max(dim=3,keepdim=True)[1]  # (b, t, n, 1) argmax E(Z)
-        target_max_actions = target_max_actions.unsqueeze(4).expand(-1,-1,-1,-1, self.ntq) # (b,t,n,1,ntq) 
-        target_max_Zs = torch.gather(Z_targets, dim=3, index=target_max_actions).squeeze(3) #(b,t,n,ntq)  
+            max_action_qvals, target_max_actions = Z_eval_clone.mean(dim=4).max(dim=3,keepdim=True)
+            target_max_actions = target_max_actions.unsqueeze(4).expand(-1,-1,-1,-1,self.ntq)
+            target_max_Zs = torch.gather(Z_targets, dim=3, index=target_max_actions).squeeze(3)
+        else:
+            target_max_actions = Z_targets.mean(dim=4).max(dim=3,keepdim=True)[1]  # (b, t, n, 1) argmax E(Z)
+            target_max_actions = target_max_actions.unsqueeze(4).expand(-1,-1,-1,-1, self.ntq) # (b,t,n,1,ntq) 
+            target_max_Zs = torch.gather(Z_targets, dim=3, index=target_max_actions).squeeze(3) #(b,t,n,ntq)  
         
         # Mixer
         if self.args.alg == 'ddn':
@@ -193,7 +196,8 @@ class DDN:
         loss.backward()
         torch.nn.utils.clip_grad_norm_(self.eval_parameters, self.args.grad_norm_clip)
         self.optimizer.step()
-        self.scheduler.step()
+        if self.args.scheduler:
+            self.scheduler.step()
         # Max over target Z-values
 
         # Garbage Collection

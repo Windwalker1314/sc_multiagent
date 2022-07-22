@@ -37,7 +37,7 @@ class DTRANS(nn.Module):
         q_vals = z_values.mean(dim=3) # b, t, n
         w_shape = torch.abs(self.w_shape(states)).reshape(b,t,n,1).expand(-1,-1,-1,nq)
         z_shape = z_values-q_vals.view(b,t,n,1).expand(-1,-1,-1,nq) # b, t, n, nq
-        z_shape*=w_shape
+        z_shape *= w_shape
         Z_shape = z_shape.sum(dim=2,keepdim=True)
 
         tau = rnd_q.view(b*t*nq, 1).expand(-1, self.qe)  # b*t*nq, qe

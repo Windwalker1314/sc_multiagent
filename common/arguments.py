@@ -23,8 +23,10 @@ def get_common_args():
     parser.add_argument('--last_action', type=bool, default=True, help='whether to use the last action to choose action')
     parser.add_argument('--reuse_network', type=bool, default=True, help='whether to use one network for all agents')
     parser.add_argument('--gamma', type=float, default=0.99, help='discount factor')
-    parser.add_argument('--optimizer', type=str, default="Adam", help='optimizer')
+    parser.add_argument('--optimizer', type=str, default="RMS", help='optimizer')
+    parser.add_argument('--scheduler', type=bool, default=False, help='scheduler')
     parser.add_argument('--eps', type=float, default=0.00001, help='epsilon')
+    parser.add_argument('--optim_alpha', type=float, default=0.99, help='optimizer alpha')
     parser.add_argument('--lr', type=float, default=5e-4, help='learning rate')
     parser.add_argument('--evaluate_cycle', type=int, default=40000, help='how often to evaluate the model')
     parser.add_argument('--evaluate_epoch', type=int, default=32, help='number of the epoch to evaluate the agent')
@@ -35,7 +37,7 @@ def get_common_args():
     parser.add_argument('--cuda', type=bool, default=False, help='whether to use the GPU')
     parser.add_argument('--buffer_size', type=int, default=5000, help='replay buffer size')
     parser.add_argument('--opponent_modelling', type=bool, default=True, help='replay buffer size')
-    
+    parser.add_argument('--double_q', type=bool, default=True, help="double_q")
     args = parser.parse_args()
     return args
 
@@ -47,6 +49,7 @@ def get_coma_args(args):
     args.critic_dim = 128
     args.lr_actor = 1e-4
     args.lr_critic = 1e-3
+    args.optim_alpha=0.99
 
     # epsilon-greedy
     args.epsilon = 0.5
@@ -83,8 +86,8 @@ def get_ddn_args(args):
 def get_dmix_args(args):
     args.rnn_hidden_dim = 256
     args.quantile_emb_dim = 64
-    args.n_quantiles = 8
-    args.n_target_quantiles = 8
+    args.n_quantiles = 16
+    args.n_target_quantiles = 16
     args.n_approx_quantiles = 32
     args.attention_dim = 32
     args.hypernet_emb = 64
