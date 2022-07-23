@@ -86,8 +86,8 @@ def get_ddn_args(args):
 def get_dmix_args(args):
     args.rnn_hidden_dim = 256
     args.quantile_emb_dim = 64
-    args.n_quantiles = 16
-    args.n_target_quantiles = 16
+    args.n_quantiles = 1
+    args.n_target_quantiles = 1
     args.n_approx_quantiles = 32
     args.attention_dim = 32
     args.hypernet_emb = 64
