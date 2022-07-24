@@ -67,7 +67,7 @@ class DTRANS(nn.Module):
         assert(n==self.n_agents)
         assert(states.shape == (b,t,self.args.state_shape))
 
-        w_shape = self.obs_w(states, obs).reshape(b,t,n,1).expand(-1,-1,-1,nq)
+        w_shape = self.obs_w(states, obs).reshape(b,t,n,1).expand(-1,-1,-1,nq) * n
         #w_shape = f.softmax(self.w_shape(states),dim=2).unsqueeze(3).expand(-1,-1,-1,nq) * n
         z_values *= w_shape
 
