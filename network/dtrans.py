@@ -14,8 +14,8 @@ class DTRANS(nn.Module):
         self.qe = args.quantile_emb_dim 
         self.hypernet_emb = args.hypernet_emb
         self.state_dim = int(np.prod(args.state_shape))
-        """self.obs_w = OBS_W(args)
-        self.b_mean = nn.Sequential(nn.Linear(self.state_dim, self.hypernet_emb),
+        self.obs_w = OBS_W(args)
+        """self.b_mean = nn.Sequential(nn.Linear(self.state_dim, self.hypernet_emb),
                                     nn.ReLU(),
                                     nn.Linear(self.hypernet_emb, 1))"""
 
@@ -67,7 +67,8 @@ class DTRANS(nn.Module):
         assert(n==self.n_agents)
         assert(states.shape == (b,t,self.args.state_shape))
 
-        w_shape = f.softmax(self.w_shape(states),dim=2).unsqueeze(3).expand(-1,-1,-1,nq)
+        w_shape = self.obs_w(states, obs).reshape(b,t,n,1).expand(-1,-1,-1,nq)
+        #w_shape = f.softmax(self.w_shape(states),dim=2).unsqueeze(3).expand(-1,-1,-1,nq) * n
         z_values *= w_shape
 
         tau = rnd_q.view(b*t*nq, 1).expand(-1, self.qe)  # b*t*nq, qe
@@ -80,6 +81,5 @@ class DTRANS(nn.Module):
         psi = psi.reshape(b,t,1,self.hypernet_emb).expand(b,t,nq,self.hypernet_emb).reshape(b*t*nq,self.hypernet_emb)
         # psi: b*t*nq, emb
         Z_state = self.g(psi * phi).reshape(b, t, 1, nq)
-
         Z_total = z_values.sum(dim=2, keepdim=True) + Z_state
         return Z_total
