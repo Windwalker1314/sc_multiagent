@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 def plt_win_rate_mean():
     path = []
-    alg_num = 2
+    alg_num = 3
     win_rates = [[] for _ in range(alg_num)]
     game_map = '5m_vs_6m'
     #path.append('../result/vdn/' + game_map)
@@ -14,7 +14,7 @@ def plt_win_rate_mean():
     #path.append('../result/coma/' + game_map)
     #path.append('../result/central_v+commnet/' + game_map)
     #path.append('../result/central_v+g2anet/' + game_map)
-    #path.append('../result/ddn/'+game_map)
+    path.append('../result/ddn/'+game_map)
     #path.append('../result/ddn+om/'+game_map)
     path.append('../result/dtrans/' + game_map)
     num_run = 5
@@ -36,7 +36,8 @@ def plt_win_rate_mean():
     plt.plot(range(len(episode_rewards[2])), episode_rewards[2], c='g', label='dtrans')"""
     #plt.plot(range(len(win_rates[0])), win_rates[0], c='b', label='vdn')
     plt.plot(range(len(win_rates[0])), win_rates[0], c='r', label='qmix')
-    plt.plot(range(len(win_rates[1])), win_rates[1], c='g', label='dtrans')
+    plt.plot(range(len(win_rates[1])), win_rates[1], c='g', label='ddn')
+    plt.plot(range(len(win_rates[2])), win_rates[2], c='b', label='dtrans')
     """plt.plot(range(len(win_rates[2])), win_rates[2], c='g', label='qtran_base')
     plt.plot(range(len(win_rates[3])), win_rates[3], c='y', label='qtran_alt')
     plt.plot(range(len(win_rates[4])), win_rates[4], c='c', label='coma')
