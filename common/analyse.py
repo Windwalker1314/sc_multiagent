@@ -17,7 +17,7 @@ def plt_win_rate_mean():
     path.append('../result/ddn/'+game_map)
     #path.append('../result/ddn+om/'+game_map)
     path.append('../result/dtrans/' + game_map)
-    num_run = 5
+    num_run = 2
     for i in range(alg_num):
         for j in range(num_run):
             try:
@@ -27,9 +27,9 @@ def plt_win_rate_mean():
                 continue
         win_rates[i] = np.array(win_rates[i]).mean(axis=0)
     win_rates = np.array(win_rates)
-    print(win_rates.shape)
+    print(win_rates[:,370:400].mean(axis=1))
 
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(12, 5))
     plt.ylim(0,1)
     """plt.plot(range(len(episode_rewards[0])), episode_rewards[0], c='b', label='ddn')
     plt.plot(range(len(episode_rewards[1])), episode_rewards[1], c='r', label='ddn+om')
