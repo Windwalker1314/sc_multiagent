@@ -21,7 +21,7 @@ class OpponnetModelling(nn.Module):
         self.n_agents = self.n_ally+self.n_enemy+1
         # transformers
         
-        self.n_head = args.n_head
+        self.n_head = args.n_head_om
         self.emb_dim = args.attention_dim
         hypernet_emb = args.hypernet_emb
         
