@@ -80,11 +80,11 @@ def get_ddn_args(args):
     args.attention_dim = 16
     args.hypernet_emb = 64
     args.mixing_emb_dim = 32
-    args.n_head = 4
+    args.n_head_om = 2
     return args
 
 def get_dmix_args(args):
-    args.rnn_hidden_dim = 256
+    args.rnn_hidden_dim = 512
     args.quantile_emb_dim = 64
     args.n_quantiles = 1
     args.n_target_quantiles = 1
@@ -93,6 +93,7 @@ def get_dmix_args(args):
     args.hypernet_emb = 64
     args.mixing_emb_dim = 32
     args.n_head = 1
+    args.n_head_om = 2
     return args
 
 # arguments of vnd、 qmix、 qtran
