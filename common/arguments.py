@@ -28,6 +28,7 @@ def get_common_args():
     parser.add_argument('--eps', type=float, default=0.00001, help='epsilon')
     parser.add_argument('--optim_alpha', type=float, default=0.99, help='optimizer alpha')
     parser.add_argument('--lr', type=float, default=5e-4, help='learning rate')
+    parser.add_argument('--rnn_hidden_dim', type=float, default=512, help='rnn_hidden_dim')
     parser.add_argument('--evaluate_cycle', type=int, default=40000, help='how often to evaluate the model')
     parser.add_argument('--evaluate_epoch', type=int, default=32, help='number of the epoch to evaluate the agent')
     parser.add_argument('--model_dir', type=str, default='./model', help='model directory of the policy')
@@ -72,7 +73,6 @@ def get_coma_args(args):
     return args
 
 def get_ddn_args(args):
-    args.rnn_hidden_dim = 256
     args.quantile_emb_dim = 64
     args.n_quantiles = 1
     args.n_target_quantiles = 1
@@ -84,10 +84,9 @@ def get_ddn_args(args):
     return args
 
 def get_dmix_args(args):
-    args.rnn_hidden_dim = 512
     args.quantile_emb_dim = 64
-    args.n_quantiles = 1
-    args.n_target_quantiles = 1
+    args.n_quantiles = 8
+    args.n_target_quantiles = 8
     args.n_approx_quantiles = 32
     args.attention_dim = 32
     args.hypernet_emb = 64
@@ -99,7 +98,6 @@ def get_dmix_args(args):
 # arguments of vnd、 qmix、 qtran
 def get_mixer_args(args):
     # network
-    args.rnn_hidden_dim = 64
     args.qmix_hidden_dim = 32
     args.two_hyper_layers = False
     args.hyper_hidden_dim = 64
@@ -143,7 +141,6 @@ def get_mixer_args(args):
 # arguments of central_v
 def get_centralv_args(args):
     # network
-    args.rnn_hidden_dim = 64
     args.critic_dim = 128
     args.lr_actor = 1e-4
     args.lr_critic = 1e-3
@@ -172,7 +169,6 @@ def get_centralv_args(args):
 # arguments of central_v
 def get_reinforce_args(args):
     # network
-    args.rnn_hidden_dim = 64
     args.critic_dim = 128
     args.lr_actor = 1e-4
     args.lr_critic = 1e-3
